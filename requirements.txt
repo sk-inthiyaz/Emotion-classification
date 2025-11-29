@@ -1,0 +1,16 @@
+torch>=2.1.0
+torchaudio
+transformers>=4.45.0
+librosa
+datasets
+evaluate
+scikit-learn
+umap-learn
+matplotlib
+seaborn
+pandas
+numpy
+tqdm
+joblib
+soundfile
+flask

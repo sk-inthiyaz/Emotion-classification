@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h2 class="mb-3">{{ title }}</h2>
+    <p class="text-muted">Upload an audio file to run {{ title | lower }}.</p>
+
+    <form class="card p-3 mb-4" action="{{ action }}" method="post" enctype="multipart/form-data">
+      <div class="mb-3">
+        <input class="form-control" type="file" name="audio" accept="audio/*" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Run {{ title }}</button>
+    </form>
+
+    {% if result %}
+    <div class="card p-3">
+      <h5>Result</h5>
+      {% if result.label %}<p class="lead">{{ result.label }}</p>{% endif %}
+      {% if result.note %}<p class="small text-muted">{{ result.note }}</p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
