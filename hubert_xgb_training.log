@@ -1,0 +1,40 @@
+2025-11-19 02:29:17,192 - INFO - Loaded 29768 samples, embedding dim: 1024
+2025-11-19 02:29:17,195 - INFO - Label distribution: Counter({'angry': 5084, 'disgust': 5084, 'fear': 5084, 'happy': 5084, 'sad': 5084, 'neutral': 4348})
+2025-11-19 02:29:17,198 - INFO - Starting 5-fold cross-validation
+2025-11-19 02:29:17,202 - INFO - 
+--- Fold 1/5 ---
+2025-11-19 02:29:17,627 - INFO - Class weights: {np.int64(0): np.float64(0.9759036144578314), np.int64(1): np.float64(0.9759036144578314), np.int64(2): np.float64(0.9759036144578314), np.int64(3): np.float64(0.9759036144578314), np.int64(4): np.float64(1.1408450704225352), np.int64(5): np.float64(0.9759036144578314)}
+2025-11-19 02:29:17,627 - INFO - Training XGBoost classifier
+2025-11-19 02:32:47,249 - INFO - Fold 1 - Acc: 0.7039, F1(weighted): 0.7026, F1(macro): 0.7037
+2025-11-19 02:32:47,250 - INFO - 
+--- Fold 2/5 ---
+2025-11-19 02:32:47,460 - INFO - Class weights: {np.int64(0): np.float64(0.9759036144578314), np.int64(1): np.float64(0.9759036144578314), np.int64(2): np.float64(0.9759036144578314), np.int64(3): np.float64(0.9756637168141593), np.int64(4): np.float64(1.1411730879815987), np.int64(5): np.float64(0.9759036144578314)}
+2025-11-19 02:32:47,460 - INFO - Training XGBoost classifier
+2025-11-19 02:36:14,665 - INFO - Fold 2 - Acc: 0.7024, F1(weighted): 0.7015, F1(macro): 0.7021
+2025-11-19 02:36:14,666 - INFO - 
+--- Fold 3/5 ---
+2025-11-19 02:36:14,871 - INFO - Class weights: {np.int64(0): np.float64(0.9759036144578314), np.int64(1): np.float64(0.9759036144578314), np.int64(2): np.float64(0.9756637168141593), np.int64(3): np.float64(0.9759036144578314), np.int64(4): np.float64(1.1411730879815987), np.int64(5): np.float64(0.9759036144578314)}
+2025-11-19 02:36:14,871 - INFO - Training XGBoost classifier
+2025-11-19 02:39:41,213 - INFO - Fold 3 - Acc: 0.6940, F1(weighted): 0.6937, F1(macro): 0.6944
+2025-11-19 02:39:41,213 - INFO - 
+--- Fold 4/5 ---
+2025-11-19 02:39:41,428 - INFO - Class weights: {np.int64(0): np.float64(0.975944594705352), np.int64(1): np.float64(0.9757046869878728), np.int64(2): np.float64(0.975944594705352), np.int64(3): np.float64(0.975944594705352), np.int64(4): np.float64(1.141221008242285), np.int64(5): np.float64(0.9757046869878728)}
+2025-11-19 02:39:41,429 - INFO - Training XGBoost classifier
+2025-11-19 02:43:07,173 - INFO - Fold 4 - Acc: 0.6993, F1(weighted): 0.6978, F1(macro): 0.6984
+2025-11-19 02:43:07,174 - INFO - 
+--- Fold 5/5 ---
+2025-11-19 02:43:07,386 - INFO - Class weights: {np.int64(0): np.float64(0.9757046869878728), np.int64(1): np.float64(0.975944594705352), np.int64(2): np.float64(0.975944594705352), np.int64(3): np.float64(0.975944594705352), np.int64(4): np.float64(1.1408929769090734), np.int64(5): np.float64(0.975944594705352)}
+2025-11-19 02:43:07,386 - INFO - Training XGBoost classifier
+2025-11-19 02:46:33,436 - INFO - Fold 5 - Acc: 0.6996, F1(weighted): 0.6989, F1(macro): 0.6993
+2025-11-19 02:46:33,436 - INFO - 
+Average Accuracy: 0.6998 ± 0.0034
+2025-11-19 02:46:33,436 - INFO - Average F1 (weighted): 0.6989 ± 0.0031
+2025-11-19 02:46:33,437 - INFO - Average F1 (macro): 0.6995 ± 0.0032
+2025-11-19 02:46:33,438 - INFO - Saved CV results to /workspaces/-SpeechEmbeddings-WavLM/models/xgboost_cv_results.json
+2025-11-19 02:46:33,438 - INFO - 
+--- Training final model on full dataset ---
+2025-11-19 02:46:33,659 - INFO - Class weights: {np.int64(0): np.float64(0.9759036144578314), np.int64(1): np.float64(0.9759036144578314), np.int64(2): np.float64(0.9759036144578314), np.int64(3): np.float64(0.9759036144578314), np.int64(4): np.float64(1.1408450704225352), np.int64(5): np.float64(0.9759036144578314)}
+2025-11-19 02:46:33,659 - INFO - Training XGBoost classifier
+2025-11-19 02:49:54,119 - INFO - 
+🎯 Final Test Accuracy: 0.7031
+2025-11-19 02:49:54,119 - INFO - 🎯 Final Test F1 (weighted): 0.7020
