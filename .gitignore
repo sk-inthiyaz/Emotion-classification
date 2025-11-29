@@ -1,0 +1,61 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs & temp
+*.log
+*.tmp
+*.temp
+*.cache
+
+# Flask app uploads
+app/uploads/
+
+# Model artifacts & large binaries (use Git LFS if needed)
+models/
+embeddings/
+*.pt
+*.pth
+*.pkl
+*.joblib
+*.safetensors
+
+# Data (raw/processed) – exclude local datasets
+data/
+!data/processed/
+# Allow small metadata under processed if needed
+data/processed/*.csv
+
+# Results – keep lightweight summaries, ignore heavy artifacts
+results/*.wav
+results/*.npy
+results/*.pt
+
+# Hugging Face / transformers caches
+~/.cache/huggingface/
+~/.cache/torch/
+
+# Node/bundles (if any in future)
+node_modules/
+dist/
+build/
+
+# Ignore app static build artifacts generated locally
+app/static/*.map
