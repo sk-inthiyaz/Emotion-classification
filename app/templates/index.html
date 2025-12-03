@@ -1,51 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="text-center mb-5">
-  <h1 class="mb-3">Speech AI Suite</h1>
-  <p class="text-muted">Upload audio files for AI-powered speech analysis</p>
+<div class="text-center mb-5 animate-fade-in">
+  <h1 class="display-4 mb-3 fw-bold text-primary">Speech AI Suite</h1>
+  <p class="lead text-muted mb-4">Advanced audio analysis powered by HuBERT and Machine Learning</p>
 </div>
 
-<div class="row g-4">
+<div class="row g-4 animate-fade-in" style="animation-delay: 0.1s;">
   <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('emotion_page') }}">
+    <a class="task-card card h-100 border-0" href="{{ url_for('emotion_page') }}">
       <div class="card-body">
-        <div class="task-icon">😊</div>
-        <h5 class="card-title">Emotion</h5>
-        <p class="card-text">Detect emotions from speech</p>
-        <span class="badge bg-success">Active</span>
+        <div class="task-icon text-primary">😊</div>
+        <h5 class="card-title">Emotion Analysis</h5>
+        <p class="card-text">Detect subtle emotional cues from speech patterns with high accuracy.</p>
+        <span class="badge bg-primary rounded-pill px-3 py-2">Active</span>
       </div>
     </a>
   </div>
   
   <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('gender_page') }}">
+    <a class="task-card card h-100 border-0 opacity-75" href="{{ url_for('gender_page') }}">
       <div class="card-body">
-        <div class="task-icon">👤</div>
-        <h5 class="card-title">Gender</h5>
-        <p class="card-text">Identify speaker gender</p>
-        <span class="badge bg-secondary">Soon</span>
+        <div class="task-icon text-secondary">👤</div>
+        <h5 class="card-title">Gender Detection</h5>
+        <p class="card-text">Identify speaker gender characteristics from voice samples.</p>
+        <span class="badge bg-secondary rounded-pill px-3 py-2">Coming Soon</span>
       </div>
     </a>
   </div>
   
   <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('intent_page') }}">
+    <a class="task-card card h-100 border-0 opacity-75" href="{{ url_for('intent_page') }}">
       <div class="card-body">
-        <div class="task-icon">🎯</div>
-        <h5 class="card-title">Intent</h5>
-        <p class="card-text">Understand speaker intent</p>
-        <span class="badge bg-secondary">Soon</span>
+        <div class="task-icon text-secondary">🎯</div>
+        <h5 class="card-title">Intent Recognition</h5>
+        <p class="card-text">Understand the underlying purpose and intent of the speaker.</p>
+        <span class="badge bg-secondary rounded-pill px-3 py-2">Coming Soon</span>
       </div>
     </a>
   </div>
   
   <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('speaker_page') }}">
+    <a class="task-card card h-100 border-0 opacity-75" href="{{ url_for('speaker_page') }}">
       <div class="card-body">
-        <div class="task-icon">🗣️</div>
-        <h5 class="card-title">Speaker</h5>
-        <p class="card-text">Recognize speaker identity</p>
-        <span class="badge bg-secondary">Soon</span>
+        <div class="task-icon text-secondary">🗣️</div>
+        <h5 class="card-title">Speaker ID</h5>
+        <p class="card-text">Distinguish and identify different speakers in audio streams.</p>
+        <span class="badge bg-secondary rounded-pill px-3 py-2">Coming Soon</span>
       </div>
     </a>
   </div>

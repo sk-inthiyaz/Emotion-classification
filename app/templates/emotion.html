@@ -1,14 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
+<div class="row animate-fade-in">
   <div class="col-lg-8">
-    <h2 class="mb-3">Emotion Classification</h2>
-    <p class="text-muted">Upload or record audio to detect emotions using HuBERT-large + SVM</p>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h2 class="mb-1">Emotion Classification</h2>
+        <p class="text-muted mb-0">Analyze speech emotions using HuBERT-large + SVM</p>
+      </div>
+      <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">AI Powered</span>
+    </div>
 
     <!-- Recording Section -->
-    <div class="card p-4 mb-3" id="recordingCard">
-      <h5 class="mb-3"><i class="bi bi-mic"></i> Record Audio</h5>
-      <div class="d-flex flex-column gap-2">
+    <div class="card p-4 mb-4 border-0 shadow-sm" id="recordingCard">
+      <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="p-2 bg-danger bg-opacity-10 rounded-circle text-danger">
+          <i class="bi bi-mic-fill fs-5"></i>
+        </div>
+        <h5 class="mb-0">Record Audio</h5>
+      </div>
+      
+      <div class="d-flex flex-column gap-3">
         <div class="d-flex gap-2 flex-wrap">
           <button class="btn btn-danger" id="recordBtn" type="button">
             <i class="bi bi-mic-fill"></i> Start Recording
@@ -22,19 +33,19 @@
         </div>
         
         <!-- Audio Visualizer for Recording -->
-        <div id="recordedAudioPlayer" class="audio-player d-none">
-          <div class="audio-controls">
-            <div class="audio-time">
-              <span id="recordedCurrentTime">0:00</span> / <span id="recordedDuration">0:00</span>
-            </div>
-            <div class="audio-wave">
-              <div class="audio-progress" id="recordedProgress"></div>
-            </div>
+        <div id="recordedAudioPlayer" class="d-none">
+          <div class="visualizer-container">
+            <canvas id="recordingCanvas"></canvas>
+          </div>
+          <div class="d-flex justify-content-between text-muted small mt-2">
+            <span id="recordedCurrentTime">0:00</span>
+            <span id="recordedDuration">0:00</span>
           </div>
         </div>
         
-        <div id="recordingStatus" class="text-muted small"></div>
+        <div id="recordingStatus" class="text-muted small fw-medium"></div>
         <audio id="audioPlayback" class="d-none"></audio>
+        
         <button class="btn btn-success d-none" id="useRecordingBtn" type="button">
           <i class="bi bi-check-circle"></i> Use This Recording
         </button>
@@ -42,83 +53,116 @@
     </div>
 
     <!-- Upload Section -->
-    <div class="card p-4 mb-4">
-      <h5 class="mb-3"><i class="bi bi-cloud-upload"></i> Upload Audio File</h5>
+    <div class="card p-4 mb-4 border-0 shadow-sm">
+      <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="p-2 bg-primary bg-opacity-10 rounded-circle text-primary">
+          <i class="bi bi-cloud-upload-fill fs-5"></i>
+        </div>
+        <h5 class="mb-0">Upload Audio File</h5>
+      </div>
+
       <form action="{{ url_for('emotion_predict') }}" method="post" enctype="multipart/form-data" id="emotionForm">
-        <div class="mb-3">
-          <label class="form-label">Audio File</label>
-          <input class="form-control" type="file" name="audio" id="fileInput" accept="audio/*">
-          <div class="form-text">Supported: WAV, MP3, FLAC, OGG, M4A, WebM</div>
+        <div class="mb-4">
+          <label class="form-label fw-medium">Select Audio File</label>
+          <input class="form-control form-control-lg" type="file" name="audio" id="fileInput" accept="audio/*">
+          <div class="form-text">Supported formats: WAV, MP3, FLAC, OGG, M4A, WebM</div>
         </div>
         
         <!-- Audio Preview for Uploaded File -->
-        <div id="uploadedAudioPlayer" class="audio-player d-none mb-3">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <button class="btn btn-outline-primary btn-sm" id="playUploadedBtn" type="button">
-              <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
+        <div id="uploadedAudioPlayer" class="d-none mb-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <button class="btn btn-primary rounded-circle p-3" id="playUploadedBtn" type="button" style="width: 50px; height: 50px;">
+              <i class="bi bi-play-fill fs-4"></i>
             </button>
             <div class="flex-grow-1">
-              <div class="audio-time">
-                <span id="uploadedCurrentTime">0:00</span> / <span id="uploadedDuration">0:00</span>
-              </div>
-              <div class="audio-wave">
-                <div class="audio-progress" id="uploadedProgress"></div>
+              <div class="visualizer-container mt-0" style="height: 80px;">
+                <canvas id="playbackCanvas"></canvas>
               </div>
             </div>
+          </div>
+          <div class="d-flex justify-content-between text-muted small px-1">
+            <span id="uploadedCurrentTime">0:00</span>
+            <span id="uploadedDuration">0:00</span>
           </div>
         </div>
         
         <audio id="uploadedAudioPlayback" class="d-none"></audio>
         
-        <button class="btn btn-primary" type="submit" id="submitBtn">
-          <span class="btn-text">Predict Emotion</span>
+        <button class="btn btn-primary w-100 py-3" type="submit" id="submitBtn">
+          <span class="btn-text fw-bold">Analyze Emotion</span>
           <span class="spinner-border spinner-border-sm ms-2 d-none" id="spinner"></span>
         </button>
       </form>
     </div>
 
     {% if result %}
-    <div class="card p-4">
-      <h5 class="mb-3">Result</h5>
-      <div class="prediction-label mb-4">
-        <span class="badge bg-primary">{{ result.label }}</span>
+    <div class="card p-4 border-0 shadow-sm animate-fade-in">
+      <h5 class="mb-4">Analysis Result</h5>
+      <div class="text-center mb-5">
+        <div class="display-1 mb-2">
+          {% if result.label == 'happy' %}😊
+          {% elif result.label == 'sad' %}😢
+          {% elif result.label == 'angry' %}😠
+          {% elif result.label == 'neutral' %}😐
+          {% elif result.label == 'fear' %}😨
+          {% elif result.label == 'disgust' %}🤢
+          {% else %}🤔{% endif %}
+        </div>
+        <h3 class="text-capitalize fw-bold text-primary">{{ result.label }}</h3>
+        <p class="text-muted">Detected Emotion</p>
       </div>
       
       {% if result.probabilities %}
-      <h6 class="mb-3">Probabilities</h6>
-      {% for label, prob in result.probabilities.items() %}
-      <div class="prob-item">
-        <div class="d-flex justify-content-between mb-1">
-          <span class="fw-semibold">{{ label }}</span>
-          <span class="text-muted">{{ '%.1f' % (prob * 100) }}%</span>
+      <h6 class="mb-3 text-muted text-uppercase small fw-bold">Confidence Scores</h6>
+      <div class="row g-3">
+        {% for label, prob in result.probabilities.items() %}
+        <div class="col-md-6">
+          <div class="p-3 bg-light rounded-3">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-semibold text-capitalize">{{ label }}</span>
+              <span class="fw-bold text-primary">{{ '%.1f' % (prob * 100) }}%</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar" style="width: {{ prob * 100 }}%; opacity: {{ 0.5 + (prob * 0.5) }}"></div>
+            </div>
+          </div>
         </div>
-        <div class="progress">
-          <div class="progress-bar" style="width: {{ prob * 100 }}%;"></div>
-        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
       {% endif %}
     </div>
     {% endif %}
   </div>
   
   <div class="col-lg-4">
-    <div class="card info-card p-3 mb-3">
-      <h6>Model Details</h6>
-      <ul class="small mb-0">
-        <li><strong>Embeddings:</strong> HuBERT-large</li>
-        <li><strong>Classifier:</strong> SVM (RBF)</li>
-        <li><strong>Accuracy:</strong> 79.14%</li>
-        <li><strong>Dimensions:</strong> 1024</li>
+    <div class="card p-4 mb-4 border-0 shadow-sm">
+      <h6 class="fw-bold mb-3">Model Architecture</h6>
+      <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+        <li class="d-flex justify-content-between">
+          <span class="text-muted">Embeddings</span>
+          <span class="fw-medium">HuBERT-large</span>
+        </li>
+        <li class="d-flex justify-content-between">
+          <span class="text-muted">Classifier</span>
+          <span class="fw-medium">SVM (RBF Kernel)</span>
+        </li>
+        <li class="d-flex justify-content-between">
+          <span class="text-muted">Accuracy</span>
+          <span class="fw-medium text-success">79.14%</span>
+        </li>
+        <li class="d-flex justify-content-between">
+          <span class="text-muted">Feature Dim</span>
+          <span class="fw-medium">1024</span>
+        </li>
       </ul>
     </div>
     
-    <div class="card tips-card p-3">
-      <h6>Tips</h6>
-      <ul class="small mb-0">
-        <li>Clear audio works best</li>
-        <li>3-30 seconds optimal</li>
-        <li>First run downloads model</li>
+    <div class="card p-4 border-0 shadow-sm bg-primary text-white">
+      <h6 class="fw-bold mb-3 text-white">Pro Tips</h6>
+      <ul class="small mb-0 ps-3">
+        <li class="mb-2">Use clear audio without background noise for best results</li>
+        <li class="mb-2">Keep recordings between 3-10 seconds</li>
+        <li>Supported formats include WAV, MP3, and WebM</li>
       </ul>
     </div>
   </div>
@@ -143,9 +187,30 @@ const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
 const playUploadedBtn = document.getElementById('playUploadedBtn');
 const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
 
+// Immersive background helpers
+const bodyEl = document.body;
+let activePlaybacks = 0;
+
+function updateAudioMood(mode, isActive) {
+  if (mode === 'recording') {
+    bodyEl.classList.toggle('audio-recording', Boolean(isActive));
+    return;
+  }
+
+  if (mode === 'playing') {
+    activePlaybacks = Math.max(0, activePlaybacks + (isActive ? 1 : -1));
+    if (activePlaybacks > 0) {
+      bodyEl.classList.add('audio-playing');
+    } else {
+      bodyEl.classList.remove('audio-playing');
+    }
+  }
+}
+
 // Audio player helper function
-function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, progressEl) {
+function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, visualizer) {
   let isPlaying = false;
+  audioElement.__isTrackingPlayback = false;
   
   audioElement.addEventListener('loadedmetadata', function() {
     durationEl.textContent = formatTime(audioElement.duration);
@@ -153,35 +218,49 @@ function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, p
   
   audioElement.addEventListener('timeupdate', function() {
     currentTimeEl.textContent = formatTime(audioElement.currentTime);
-    const progress = (audioElement.currentTime / audioElement.duration) * 100;
-    progressEl.style.width = progress + '%';
   });
   
-  audioElement.addEventListener('play', function() {
-    progressEl.classList.add('playing');
-  });
+  const handlePlay = function() {
+    if (!audioElement.__isTrackingPlayback) {
+      audioElement.__isTrackingPlayback = true;
+      updateAudioMood('playing', true);
+    }
+    if (visualizer) visualizer.init(audioElement);
+  };
   
-  audioElement.addEventListener('pause', function() {
-    progressEl.classList.remove('playing');
-  });
+  const handlePause = function() {
+    if (audioElement.__isTrackingPlayback) {
+      audioElement.__isTrackingPlayback = false;
+      updateAudioMood('playing', false);
+    }
+    if (visualizer) visualizer.stop();
+  };
+
+  audioElement.addEventListener('play', handlePlay);
+  audioElement.addEventListener('pause', handlePause);
   
   audioElement.addEventListener('ended', function() {
     isPlaying = false;
-    playButton.querySelector('.play-text').textContent = 'Play';
-    playButton.querySelector('i').className = 'bi bi-play-fill';
-    progressEl.style.width = '0%';
-    progressEl.classList.remove('playing');
+    if (playButton.querySelector('.play-text')) {
+        playButton.querySelector('.play-text').textContent = 'Play';
+    }
+    playButton.querySelector('i').className = 'bi bi-play-fill' + (playButton.querySelector('i').classList.contains('fs-4') ? ' fs-4' : '');
+    handlePause();
   });
   
   playButton.addEventListener('click', function() {
     if (isPlaying) {
       audioElement.pause();
-      playButton.querySelector('.play-text').textContent = 'Play';
-      playButton.querySelector('i').className = 'bi bi-play-fill';
+      if (playButton.querySelector('.play-text')) {
+        playButton.querySelector('.play-text').textContent = 'Play';
+      }
+      playButton.querySelector('i').className = 'bi bi-play-fill' + (playButton.querySelector('i').classList.contains('fs-4') ? ' fs-4' : '');
     } else {
       audioElement.play();
-      playButton.querySelector('.play-text').textContent = 'Pause';
-      playButton.querySelector('i').className = 'bi bi-pause-fill';
+      if (playButton.querySelector('.play-text')) {
+        playButton.querySelector('.play-text').textContent = 'Pause';
+      }
+      playButton.querySelector('i').className = 'bi bi-pause-fill' + (playButton.querySelector('i').classList.contains('fs-4') ? ' fs-4' : '');
     }
     isPlaying = !isPlaying;
   });
@@ -201,7 +280,7 @@ setupAudioPlayer(
   playRecordedBtn,
   document.getElementById('recordedCurrentTime'),
   document.getElementById('recordedDuration'),
-  document.getElementById('recordedProgress')
+  window.recordingVisualizer
 );
 
 // Setup uploaded audio player
@@ -210,14 +289,23 @@ setupAudioPlayer(
   playUploadedBtn,
   document.getElementById('uploadedCurrentTime'),
   document.getElementById('uploadedDuration'),
-  document.getElementById('uploadedProgress')
+  window.playbackVisualizer
 );
 
 recordBtn.addEventListener('click', async function() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     
-    // Use audio/webm;codecs=opus for better browser compatibility
+    // Ensure the visualizer is visible BEFORE init so it measures size
+    recordedAudioPlayer.classList.remove('d-none');
+
+    // Start visualization
+    if (window.recordingVisualizer) {
+      await window.recordingVisualizer.init(stream);
+    }
+
+    updateAudioMood('recording', true);
+
     const options = { mimeType: 'audio/webm' };
     mediaRecorder = new MediaRecorder(stream, options);
     audioChunks = [];
@@ -227,6 +315,11 @@ recordBtn.addEventListener('click', async function() {
     };
     
     mediaRecorder.onstop = () => {
+      // Stop visualization
+      if (window.recordingVisualizer) {
+        window.recordingVisualizer.stop();
+      }
+
       // Create WebM blob
       recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
       const audioUrl = URL.createObjectURL(recordedBlob);
@@ -235,9 +328,11 @@ recordBtn.addEventListener('click', async function() {
       playRecordedBtn.disabled = false;
       useRecordingBtn.classList.remove('d-none');
       recordingStatus.textContent = 'Recording saved. Click Play to listen or Use This Recording to analyze.';
+      recordingStatus.className = 'text-success small fw-medium';
       
       // Stop all tracks
       stream.getTracks().forEach(track => track.stop());
+      updateAudioMood('recording', false);
     };
     
     mediaRecorder.start();
@@ -245,12 +340,13 @@ recordBtn.addEventListener('click', async function() {
     stopBtn.disabled = false;
     playRecordedBtn.disabled = true;
     useRecordingBtn.classList.add('d-none');
-    recordedAudioPlayer.classList.add('d-none');
-    recordingStatus.textContent = 'Recording... Click Stop when done.';
-    recordingStatus.classList.add('text-danger');
+    // Already visible above
+    recordingStatus.textContent = 'Recording... Speak now.';
+    recordingStatus.className = 'text-danger small fw-medium animate-pulse';
   } catch (err) {
     recordingStatus.textContent = 'Error: ' + err.message;
-    recordingStatus.classList.add('text-danger');
+    recordingStatus.className = 'text-danger small fw-medium';
+    updateAudioMood('recording', false);
   }
 });
 
@@ -259,24 +355,23 @@ stopBtn.addEventListener('click', function() {
     mediaRecorder.stop();
     recordBtn.disabled = false;
     stopBtn.disabled = true;
-    recordingStatus.classList.remove('text-danger');
+    updateAudioMood('recording', false);
   }
 });
 
 useRecordingBtn.addEventListener('click', function() {
   if (recordedBlob) {
-    // Create a File object with webm extension
     const file = new File([recordedBlob], 'recording.webm', { type: 'audio/webm' });
-    
-    // Create a DataTransfer object to set the file input
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
     
-    // Scroll to upload section
+    // Trigger change event to update UI
+    const event = new Event('change');
+    fileInput.dispatchEvent(event);
+    
     document.getElementById('emotionForm').scrollIntoView({ behavior: 'smooth' });
-    recordingStatus.textContent = 'Recording loaded. Click "Predict Emotion" below to analyze.';
-    recordingStatus.classList.add('text-success');
+    recordingStatus.textContent = 'Recording loaded below.';
   }
 });
 
@@ -287,6 +382,10 @@ fileInput.addEventListener('change', function(e) {
     const fileUrl = URL.createObjectURL(file);
     uploadedAudioPlayback.src = fileUrl;
     uploadedAudioPlayer.classList.remove('d-none');
+    
+    // Reset play button
+    const btn = document.getElementById('playUploadedBtn');
+    btn.querySelector('i').className = 'bi bi-play-fill fs-4';
   } else {
     uploadedAudioPlayer.classList.add('d-none');
   }

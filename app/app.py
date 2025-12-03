@@ -215,6 +215,12 @@ def create_app() -> Flask:
     def about():
         return render_template("about.html")
 
+    # Serve a no-content favicon to suppress 404 noise in logs
+    @app.route('/favicon.ico')
+    def favicon():
+        from flask import Response
+        return Response(status=204)
+
     return app
 
 
