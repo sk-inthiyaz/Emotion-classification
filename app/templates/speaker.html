@@ -6,6 +6,11 @@
     <p class="text-muted">Upload or record audio to identify speakers using XLSR-53 + Classifier</p>
 
     <!-- Recording Section -->
+    <div id="recordingErrorAlert" class="alert alert-warning d-none" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <span id="recordingErrorMsg">Audio recording is not available. Please use HTTPS or localhost.</span>
+    </div>
+
     <div class="card p-4 mb-3" id="recordingCard">
       <h5 class="mb-3"><i class="bi bi-mic"></i> Record Audio</h5>
       <div class="d-flex flex-column gap-2">
@@ -212,7 +217,31 @@
     document.getElementById('uploadedProgress')
   );
 
+  // Check for mediaDevices support on load
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const alertEl = document.getElementById('recordingErrorAlert');
+    const msgEl = document.getElementById('recordingErrorMsg');
+
+    alertEl.classList.remove('d-none');
+
+    // Check if we are on a non-secure context (HTTP and not localhost)
+    if (window.location.protocol === 'http:' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1') {
+      msgEl.textContent = "Browser blocked microphone access. Audio recording requires HTTPS or localhost.";
+    } else {
+      msgEl.textContent = "Audio recording API is not supported in this browser.";
+    }
+
+    recordBtn.disabled = true;
+    recordBtn.title = "Recording not available";
+  }
+
   recordBtn.addEventListener('click', async function () {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return; // Should be disabled, but just in case
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -246,10 +275,14 @@
       useRecordingBtn.classList.add('d-none');
       recordedAudioPlayer.classList.add('d-none');
       recordingStatus.textContent = 'Recording... Click Stop when done.';
-      recordingStatus.classList.add('text-danger');
+      recordingStatus.classList.remove('text-danger');
+      recordingStatus.className = 'text-primary small';
+      recordingStatus.textContent = 'Recording... Click Stop when done.';
+
     } catch (err) {
-      recordingStatus.textContent = 'Error: ' + err.message;
-      recordingStatus.classList.add('text-danger');
+      console.error("Recording error:", err);
+      recordingStatus.textContent = 'Error: ' + err.message + ". Ensure you have granted microphone permissions.";
+      recordingStatus.className = 'text-danger small';
     }
   });
 

@@ -29,7 +29,8 @@ pip-delete-this-directory.txt
 app/uploads/
 
 # Model artifacts & large binaries (use Git LFS if needed)
-models/
+models/*
+!models/.gitkeep
 embeddings/
 *.pt
 *.pth
