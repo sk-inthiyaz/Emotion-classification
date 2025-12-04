@@ -31,6 +31,10 @@ app/uploads/
 # Model artifacts & large binaries (use Git LFS if needed)
 models/*
 !models/.gitkeep
+!models/*.pkl
+!models/*.pt
+# Exclude large file (>100MB)
+models/emotion_model_svm.pkl
 embeddings/
 *.pt
 *.pth
