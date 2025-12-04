@@ -21,7 +21,9 @@ if str(SRC_DIR) not in sys.path:
 
 
 # Lazy import to avoid heavy import time before app starts
+# Lazy import to avoid heavy import time before app starts
 HuBERTFeatureExtractor = None
+XLSRFeatureExtractor = None
 
 
 class EmotionInferenceService:
@@ -106,6 +108,111 @@ class EmotionInferenceService:
         return {"label": pred_label, "probabilities": prob_map}
 
 
+
+class SpeakerInferenceService:
+    """
+    Inference service using XLSR embeddings + Classifier.
+    """
+    def __init__(self):
+        self.device = torch.device("cpu")
+        self._extractor = None
+        self._classifier = None
+        self._pca = None
+        self._scaler = None
+        self._encoder = None
+
+    @property
+    def extractor(self):
+        global XLSRFeatureExtractor
+        if self._extractor is None:
+            if XLSRFeatureExtractor is None:
+                from importlib.machinery import SourceFileLoader
+                import types
+                module_path = SRC_DIR / "2_wavlm_feature_extraction.py"
+                loader = SourceFileLoader("wavlm_feature_extraction", str(module_path))
+                mod = types.ModuleType(loader.name)
+                loader.exec_module(mod)
+                XLSRFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
+            
+            # Use XLSR-53 model
+            self._extractor = XLSRFeatureExtractor(model_name="facebook/wav2vec2-large-xlsr-53")
+        return self._extractor
+
+    def _load_speaker_artifacts(self):
+        if self._classifier is not None:
+            return
+
+        model_path = MODELS_DIR / "xlsr_classifier.pkl"
+        pca_path = MODELS_DIR / "xlsr_pca.pkl"
+        encoder_path = MODELS_DIR / "xlsr_label_encoder.pkl"
+
+        if not model_path.exists():
+            raise FileNotFoundError(f"Missing Speaker model file: {model_path}")
+        if not pca_path.exists():
+            raise FileNotFoundError(f"Missing PCA file: {pca_path}")
+        if not encoder_path.exists():
+            raise FileNotFoundError(f"Missing label encoder file: {encoder_path}")
+
+        self._classifier = joblib.load(model_path)
+        self._pca = joblib.load(pca_path)
+        self._encoder = joblib.load(encoder_path)
+        
+        # Load scaler if it exists (it should)
+        scaler_path = MODELS_DIR / "xlsr_scaler.pkl"
+        if scaler_path.exists():
+            self._scaler = joblib.load(scaler_path)
+            # Patch scaler to prevent division by zero/near-zero
+            # The last component has scale ~7e-10 which causes explosion
+            # Set it to 1.0 to disable scaling for that component
+            if hasattr(self._scaler, "scale_"):
+                self._scaler.scale_[self._scaler.scale_ < 1e-6] = 1.0
+        else:
+            self._scaler = None
+
+    def predict_speaker(self, audio_path: Path) -> Dict[str, object]:
+        self._load_speaker_artifacts()
+
+        # 1) Extract embedding
+        # User training code uses a custom strategy: layers 6-13, mean across layers, then mean+std pooling
+        emb = self.extractor.extract_from_file(str(audio_path), pooling="xlsr_custom")
+        emb = emb.reshape(1, -1)
+
+        # 2) Apply PCA
+        emb_pca = self._pca.transform(emb)
+        
+        # 3) Apply Scaler (if loaded)
+        if self._scaler:
+            emb_pca = self._scaler.transform(emb_pca)
+
+        # 3) Classify
+        pred_raw = int(self._classifier.predict(emb_pca)[0])
+        
+        # Check if prediction is an index or a label
+        # If pred_raw is a valid index (0 <= x < len(classes)), treat as index
+        # But since labels are > 100, if pred_raw > len(classes), it's definitely a label
+        if pred_raw < len(self._encoder.classes_):
+             # Likely an index
+             pred_label = str(self._encoder.inverse_transform([pred_raw])[0])
+        else:
+             # Likely a label (e.g. 3575)
+             pred_label = str(pred_raw)
+        
+        # Get probability estimates
+        if hasattr(self._classifier, "predict_proba"):
+            probs = self._classifier.predict_proba(emb_pca)[0]
+        elif hasattr(self._classifier, "decision_function"):
+            decision = self._classifier.decision_function(emb_pca)[0]
+            exp_decision = np.exp(decision - np.max(decision))
+            probs = exp_decision / exp_decision.sum()
+        else:
+            probs = np.ones(len(self._encoder.classes_)) / len(self._encoder.classes_)
+
+        # Return probabilities as dict {label: prob}
+        labels = list(self._encoder.classes_)
+        prob_map = {str(lbl): float(probs[i]) for i, lbl in enumerate(labels)}
+        return {"label": pred_label, "probabilities": prob_map}
+
+
 def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(Path(__file__).parent / "templates"), static_folder=str(Path(__file__).parent / "static"))
     app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
@@ -114,6 +221,7 @@ def create_app() -> Flask:
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
     emotion_service = EmotionInferenceService()
+    speaker_service = SpeakerInferenceService()
 
     ALLOWED_EXTENSIONS = {"wav", "mp3", "flac", "ogg", "m4a", "webm"}
 
@@ -196,20 +304,42 @@ def create_app() -> Flask:
             return render_template("intent.html", result=placeholder)
         return render_template("intent.html", result=None)
 
-    @app.route("/speaker", methods=["GET", "POST"])
+    @app.route("/speaker", methods=["GET"])
     def speaker_page():
-        placeholder = {
-            "label": "N/A",
-            "note": "Speaker model not integrated yet. Page is functional.",
-        }
-        if request.method == "POST":
-            file = request.files.get("audio")
-            if file is None or file.filename == "":
-                flash("Please upload an audio file.")
-                return redirect(url_for("speaker_page"))
-            flash("Uploaded successfully. Inference not yet implemented.")
-            return render_template("speaker.html", result=placeholder)
-        return render_template("speaker.html", result=None)
+        result = session.pop("speaker_result", None)
+        return render_template("speaker.html", result=result)
+
+    @app.route("/speaker/predict", methods=["POST"])
+    def speaker_predict():
+        file = request.files.get("audio")
+        if file is None or file.filename == "":
+            flash("Please upload an audio file.")
+            return redirect(url_for("speaker_page"))
+        
+        filename = file.filename
+        file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "unknown"
+        
+        if file_ext not in ALLOWED_EXTENSIONS:
+            flash("Unsupported file type. Upload wav, mp3, flac, ogg, m4a, or webm.")
+            return redirect(url_for("speaker_page"))
+
+        suffix = "." + file_ext
+        with tempfile.NamedTemporaryFile(delete=False, dir=uploads_dir, suffix=suffix) as tmp:
+            file.save(tmp.name)
+            tmp_path = Path(tmp.name)
+
+        try:
+            result = speaker_service.predict_speaker(tmp_path)
+            session["speaker_result"] = result
+            return redirect(url_for("speaker_page"))
+        except Exception as e:
+            flash(f"Error during prediction: {e}")
+            return redirect(url_for("speaker_page"))
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
 
     @app.route("/about")
     def about():
