@@ -73,6 +73,11 @@ class WavLMFeatureExtractor:
             # HuBERT models use Wav2Vec2FeatureExtractor
             self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
             self.model = HubertModel.from_pretrained(model_name)
+        elif "xlsr" in model_name.lower() or "wav2vec2" in model_name.lower():
+            # XLSR/Wav2Vec2 models
+            from transformers import Wav2Vec2Model
+            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
+            self.model = Wav2Vec2Model.from_pretrained(model_name)
         else:
             # WavLM models use Wav2Vec2Processor
             self.processor = Wav2Vec2Processor.from_pretrained(model_name)
@@ -216,6 +221,31 @@ class WavLMFeatureExtractor:
                 embedding = hidden_states[:, 0, :]
             elif pooling == "last":
                 embedding = hidden_states[:, -1, :]
+            elif pooling == "mean_max":
+                mean_emb = hidden_states.mean(dim=1)
+                max_emb = hidden_states.max(dim=1)[0]
+                embedding = torch.cat([mean_emb, max_emb], dim=1)
+            elif pooling == "xlsr_custom":
+                # Custom logic from user's training script:
+                # 1. Get hidden states from layers 6 to 13 (indices 6 to 12 inclusive)
+                # Note: outputs.hidden_states includes embedding layer at index 0, so layer 1 is index 1.
+                # The user code: layers = out.hidden_states[6:13]
+                # This implies 7 layers.
+                
+                # We need all hidden states first
+                all_hidden = outputs.hidden_states
+                
+                # Stack layers 6 to 13 (exclusive of 13) -> indices 6,7,8,9,10,11,12
+                selected_layers = torch.stack(all_hidden[6:13])
+                
+                # Mean across layers
+                layer_mean = selected_layers.mean(dim=0) # Shape: (batch, time, hidden)
+                
+                # Pooling: Mean and Std across time
+                mean_emb = layer_mean.mean(dim=1)
+                std_emb = layer_mean.std(dim=1)
+                
+                embedding = torch.cat([mean_emb, std_emb], dim=1)
             else:
                 raise ValueError(f"Unknown pooling strategy: {pooling}")
             

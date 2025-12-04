@@ -1,0 +1,15 @@
+--- Inspecting Models ---
+
+PCA:
+  n_components: 200
+  n_features_in_: 2048
+  Components stats: Min=-0.2998, Max=0.5849, Mean=0.0001
+
+Scaler:
+  Mean stats: Min=-0.0000, Max=0.0000
+  Scale stats: Min=0.0000, Max=15.3619
+
+Classifier (LogisticRegression):
+  Coef shape: (20, 200)
+  Coef stats: Min=-0.6861, Max=0.6875
+  Intercept stats: Min=-0.0009, Max=0.0001

@@ -1,0 +1,6 @@
+Loading scaler...
+Scaler type: <class 'sklearn.preprocessing._data.StandardScaler'>
+Scaler mean_ shape: (200,)
+Loading PCA...
+PCA n_components_: 200
+Error: 'PCA' object has no attribute 'n_features_'
