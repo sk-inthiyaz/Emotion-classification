@@ -26,6 +26,8 @@ HuBERTFeatureExtractor = None
 XLSRFeatureExtractor = None
 
 
+
+
 class EmotionInferenceService:
     """
     Inference service using HuBERT-large embeddings + SVM classifier.
@@ -352,4 +354,5 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    ssl_context = ('cert.pem', 'key.pem') if os.path.exists('cert.pem') and os.path.exists('key.pem') else 'adhoc'
+    app.run(host="0.0.0.0", port=port, debug=True, ssl_context=ssl_context)

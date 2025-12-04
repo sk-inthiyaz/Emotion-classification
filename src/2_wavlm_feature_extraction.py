@@ -108,42 +108,52 @@ class WavLMFeatureExtractor:
             
             # For WebM or unsupported formats, convert using pydub first
             if file_ext in ['webm', 'ogg', 'opus']:
-                try:
-                    from pydub import AudioSegment
-                    import tempfile
-                    
-                    # Load with pydub and export to temporary WAV
-                    audio_segment = AudioSegment.from_file(filepath)
-                    # Convert to mono and set sample rate
-                    audio_segment = audio_segment.set_channels(1).set_frame_rate(target_sr)
-                    
-                    # Export to temporary WAV file
-                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
-                        audio_segment.export(tmp_wav.name, format='wav')
-                        tmp_path = tmp_wav.name
-                    
-                    # Load the WAV file
-                    import soundfile as sf
-                    waveform_np, sample_rate = sf.read(tmp_path, dtype='float32')
-                    
-                    # Clean up temp file
-                    import os
-                    os.unlink(tmp_path)
-                    
-                    # Convert to tensor
-                    waveform = torch.from_numpy(waveform_np)
-                    if waveform.ndim == 1:
-                        waveform = waveform.unsqueeze(0)
-                    
-                except Exception as e:
-                    # Provide clearer guidance when FFmpeg is missing
-                    msg = (
-                        f"Error converting {file_ext} with pydub: {e}. "
-                        "If this is a recording from the browser, install FFmpeg and ensure it is in PATH. "
-                        "Download: https://www.gyan.dev/ffmpeg/builds/ (Windows), then add the 'bin' folder to your PATH."
-                    )
-                    logger.error(msg)
-                    raise RuntimeError(msg)
+                    try:
+                        import tempfile
+                        import subprocess
+                        import imageio_ffmpeg
+                        
+                        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                        
+                        # Create temp wav file
+                        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+                            tmp_path = tmp_wav.name
+                            
+                        # Convert using ffmpeg directly: ffmpeg -i input -ar 16000 -ac 1 -y output.wav
+                        cmd = [
+                            ffmpeg_exe,
+                            '-y',
+                            '-i', str(filepath),
+                            '-ar', str(target_sr),
+                            '-ac', '1',
+                            tmp_path
+                        ]
+                        
+                        # Run conversion (suppress output)
+                        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        
+                        # Load the WAV file
+                        import soundfile as sf
+                        waveform_np, sample_rate = sf.read(tmp_path, dtype='float32')
+                        
+                        # Clean up temp file
+                        import os
+                        if os.path.exists(tmp_path):
+                            os.unlink(tmp_path)
+                        
+                        # Convert to tensor
+                        waveform = torch.from_numpy(waveform_np)
+                        if waveform.ndim == 1:
+                            waveform = waveform.unsqueeze(0)
+                            
+                    except Exception as e:
+                         # Fallback or error reporting
+                         msg = (
+                             f"Error converting {file_ext} using ffmpeg: {e}. "
+                             "Ensure imageio-ffmpeg is installed."
+                         )
+                         logger.error(msg)
+                         raise RuntimeError(msg)
             else:
                 # Try torchaudio first (works for WAV, FLAC)
                 try:
