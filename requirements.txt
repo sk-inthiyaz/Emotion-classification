@@ -14,3 +14,6 @@ tqdm
 joblib
 soundfile
 flask
+protobuf
+imageio-ffmpeg
+pydub

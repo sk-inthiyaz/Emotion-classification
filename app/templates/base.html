@@ -1,5 +1,7 @@
 <!doctype html>
 <html lang="en">
+<!doctype html>
+<html lang="en">
 
 <head>
   <meta charset="utf-8">
@@ -7,13 +9,17 @@
   <title>Speech AI Suite</title>
   <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <nav class="navbar navbar-expand-lg navbar-light">
     <div class="container">
-      <a class="navbar-brand" href="{{ url_for('index') }}">Speech AI Suite</a>
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        <i class="bi bi-soundwave me-2"></i>Speech AI Suite
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -34,18 +40,18 @@
     </div>
   </nav>
 
-  <main class="container">
+  <main class="container py-4">
     {% with messages = get_flashed_messages() %}
     {% if messages %}
-    <div class="alert alert-warning">{{ messages[0] }}</div>
+    <div class="alert alert-warning shadow-sm border-0">{{ messages[0] }}</div>
     {% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="footer">
-    <div class="container text-center">
-      <small>© 2025 Speech AI Suite · HuBERT-large + SVM · 79.14% accuracy</small>
+  <footer class="footer py-4 mt-auto">
+    <div class="container text-center text-muted">
+      <small>© 2025 Speech AI Suite · Powered by WavLM & HuBERT</small>
     </div>
   </footer>
 
