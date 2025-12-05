@@ -233,6 +233,7 @@ class IntentInferenceService:
     def __init__(self):
         self.device = torch.device("cpu")
         self._extractor = None
+        self._model = None
         self._classifier = None
         self._scaler = None
         self._pca = None
@@ -246,18 +247,14 @@ class IntentInferenceService:
         if self._classifier is not None:
             return
 
-        # Load Extractor (shared if possible, but we init new here for simplicity)
+        # Load Extractor and Model
         if self._extractor is None:
-            # Dynamic import to avoid NameError
-            from importlib.machinery import SourceFileLoader
-            import types
-            module_path = SRC_DIR / "2_wavlm_feature_extraction.py"
-            loader = SourceFileLoader("wavlm_feature_extraction", str(module_path))
-            mod = types.ModuleType(loader.name)
-            loader.exec_module(mod)
-            WavLMFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
+            from transformers import AutoFeatureExtractor, AutoModel
+            import librosa # Ensure librosa is available
             
-            self._extractor = WavLMFeatureExtractor(model_name="microsoft/wavlm-base-plus", device="cpu")
+            model_name = "microsoft/wavlm-base-plus"
+            self._extractor = AutoFeatureExtractor.from_pretrained(model_name)
+            self._model = AutoModel.from_pretrained(model_name)
 
         if not self._model_path.exists():
             raise FileNotFoundError(f"Intent model not found at {self._model_path}")
@@ -274,8 +271,16 @@ class IntentInferenceService:
         temp_wav = audio_path.with_suffix(".converted.wav")
         clean_path = convert_to_wav(str(audio_path), str(temp_wav))
 
-        # 1) Extract embedding
-        emb = self._extractor.extract_from_file(clean_path, pooling="mean")
+        # 1) Extract embedding using AutoModel
+        import librosa
+        audio, sr = librosa.load(clean_path, sr=16000)
+        
+        inputs = self._extractor(audio, sampling_rate=16000, return_tensors="pt")
+        with torch.no_grad():
+            outputs = self._model(**inputs)
+        
+        # Mean Pooling
+        emb = outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
         
         # L2 Normalize
         norm = np.linalg.norm(emb)

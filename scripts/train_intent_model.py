@@ -22,11 +22,11 @@ SRC_DIR = ROOT_DIR / "src"
 MODELS_DIR = ROOT_DIR / "models"
 DATA_DIR = ROOT_DIR / "data"
 
-# Load WavLMFeatureExtractor
-loader = SourceFileLoader("wavlm_feature_extraction", str(SRC_DIR / "2_wavlm_feature_extraction.py"))
-mod = types.ModuleType(loader.name)
-loader.exec_module(mod)
-WavLMFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
+# Load WavLMFeatureExtractor (Removed - using AutoModel)
+# loader = SourceFileLoader("wavlm_feature_extraction", str(SRC_DIR / "2_wavlm_feature_extraction.py"))
+# mod = types.ModuleType(loader.name)
+# loader.exec_module(mod)
+# WavLMFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
 
 def load_slurp_dataset():
     """
@@ -132,16 +132,30 @@ def train_intent_model():
     print(f"Train samples: {len(train_items)}, Test samples: {len(test_items)}")
     
     # 2. Extract Features
-    print("Extracting features using WavLM...")
-    extractor = WavLMFeatureExtractor(model_name="microsoft/wavlm-base-plus")
+    print("Extracting features using WavLM (AutoModel)...")
+    from transformers import AutoFeatureExtractor, AutoModel
+    
+    model_name = "microsoft/wavlm-base-plus"
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
     
     def process_items(items):
         X = []
         y = []
         for item in tqdm(items):
             try:
-                # Load and extract
-                emb = extractor.extract_from_file(item["path"], pooling="mean")
+                # Load audio using librosa to ensure 16kHz
+                import librosa
+                audio, sr = librosa.load(item["path"], sr=16000)
+                
+                # Extract features
+                inputs = feature_extractor(audio, sampling_rate=16000, return_tensors="pt")
+                with torch.no_grad():
+                    outputs = model(**inputs)
+                
+                # Mean Pooling (as per notebook)
+                # outputs.last_hidden_state shape: (1, seq_len, hidden_size)
+                emb = outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
                 
                 # L2 Normalize
                 norm = np.linalg.norm(emb)
