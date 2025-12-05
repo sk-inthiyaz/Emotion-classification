@@ -79,8 +79,8 @@ class WavLMFeatureExtractor:
             self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
             self.model = Wav2Vec2Model.from_pretrained(model_name)
         else:
-            # WavLM models use Wav2Vec2Processor
-            self.processor = Wav2Vec2Processor.from_pretrained(model_name)
+            # WavLM models use Wav2Vec2FeatureExtractor
+            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
             self.model = WavLMModel.from_pretrained(model_name)
         
         self.model.to(self.device)
