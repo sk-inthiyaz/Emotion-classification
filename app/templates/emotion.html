@@ -31,7 +31,7 @@
             <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
           </button>
         </div>
-        
+
         <!-- Audio Visualizer for Recording -->
         <div id="recordedAudioPlayer" class="d-none">
           <div class="visualizer-container">
@@ -67,7 +67,7 @@
           <input class="form-control form-control-lg" type="file" name="audio" id="fileInput" accept="audio/*">
           <div class="form-text">Supported formats: WAV, MP3, FLAC, OGG, M4A, WebM</div>
         </div>
-        
+
         <!-- Audio Preview for Uploaded File -->
         <div id="uploadedAudioPlayer" class="d-none mb-4">
           <div class="d-flex align-items-center gap-3 mb-3">
@@ -85,7 +85,7 @@
             <span id="uploadedDuration">0:00</span>
           </div>
         </div>
-        
+
         <audio id="uploadedAudioPlayback" class="d-none"></audio>
         
         <button class="btn btn-primary w-100 py-3" type="submit" id="submitBtn">
@@ -111,7 +111,7 @@
         <h3 class="text-capitalize fw-bold text-primary">{{ result.label }}</h3>
         <p class="text-muted">Detected Emotion</p>
       </div>
-      
+
       {% if result.probabilities %}
       <h6 class="mb-3 text-muted text-uppercase small fw-bold">Confidence Scores</h6>
       <div class="row g-3">
@@ -133,7 +133,7 @@
     </div>
     {% endif %}
   </div>
-  
+
   <div class="col-lg-4">
     <div class="card p-4 mb-4 border-0 shadow-sm">
       <h6 class="fw-bold mb-3">Model Architecture</h6>
@@ -169,23 +169,23 @@
 </div>
 
 <script>
-// Recording functionality
-let mediaRecorder;
-let audioChunks = [];
-let recordedBlob;
+  // Recording functionality
+  let mediaRecorder;
+  let audioChunks = [];
+  let recordedBlob;
 
-const recordBtn = document.getElementById('recordBtn');
-const stopBtn = document.getElementById('stopBtn');
-const playRecordedBtn = document.getElementById('playRecordedBtn');
-const useRecordingBtn = document.getElementById('useRecordingBtn');
-const audioPlayback = document.getElementById('audioPlayback');
-const recordingStatus = document.getElementById('recordingStatus');
-const fileInput = document.getElementById('fileInput');
+  const recordBtn = document.getElementById('recordBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const playRecordedBtn = document.getElementById('playRecordedBtn');
+  const useRecordingBtn = document.getElementById('useRecordingBtn');
+  const audioPlayback = document.getElementById('audioPlayback');
+  const recordingStatus = document.getElementById('recordingStatus');
+  const fileInput = document.getElementById('fileInput');
 
-// Uploaded audio elements
-const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
-const playUploadedBtn = document.getElementById('playUploadedBtn');
-const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
+  // Uploaded audio elements
+  const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
+  const playUploadedBtn = document.getElementById('playUploadedBtn');
+  const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
 
 // Immersive background helpers
 const bodyEl = document.body;

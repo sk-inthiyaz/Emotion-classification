@@ -1,0 +1,5 @@
+Total components: 200
+Exact zeros: 0
+Near zeros (< 1e-6): 1
+Indices of near zeros: [199]
+Values at these indices: [7.69195212e-10]
