@@ -1,51 +1,81 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="text-center mb-5">
-  <h1 class="mb-3">Speech AI Suite</h1>
-  <p class="text-muted">Upload audio files for AI-powered speech analysis</p>
+<div class="text-center mb-5 animate-fade-in">
+  <h1 class="display-4 mb-3 fw-bold">
+    <span class="text-gradient">Speech AI Suite</span>
+  </h1>
+  <p class="lead text-muted mb-4">Advanced audio analysis powered by HuBERT & XLSR</p>
+  <div class="d-flex justify-content-center gap-3">
+    <a href="{{ url_for('emotion_page') }}" class="btn btn-primary">
+      <i class="bi bi-emoji-smile-fill me-2"></i> Try Emotion AI
+    </a>
+    <a href="{{ url_for('speaker_page') }}" class="btn btn-secondary">
+      <i class="bi bi-mic-fill me-2"></i> Try Speaker ID
+    </a>
+  </div>
 </div>
 
 <div class="row g-4">
-  <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('emotion_page') }}">
-      <div class="card-body">
-        <div class="task-icon">😊</div>
-        <h5 class="card-title">Emotion</h5>
-        <p class="card-text">Detect emotions from speech</p>
-        <span class="badge bg-success">Active</span>
+  <!-- Emotion Card -->
+  <div class="col-md-6 col-lg-3 animate-fade-in delay-1">
+    <a class="task-card" href="{{ url_for('emotion_page') }}">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <div class="task-icon">
+            <i class="bi bi-emoji-laughing-fill"></i>
+          </div>
+          <h5 class="card-title">Emotion</h5>
+          <p class="card-text text-muted">Detect subtle emotional cues from speech patterns using HuBERT-large.</p>
+          <span class="badge bg-primary rounded-pill mt-3">Active</span>
+        </div>
       </div>
     </a>
   </div>
 
-  <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('gender_page') }}">
-      <div class="card-body">
-        <div class="task-icon">👤</div>
-        <h5 class="card-title">Gender</h5>
-        <p class="card-text">Identify speaker gender</p>
-        <span class="badge bg-secondary">Soon</span>
+  <!-- Speaker Card -->
+  <div class="col-md-6 col-lg-3 animate-fade-in delay-2">
+    <a class="task-card" href="{{ url_for('speaker_page') }}">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <div class="task-icon">
+            <i class="bi bi-person-lines-fill"></i>
+          </div>
+          <h5 class="card-title">Speaker</h5>
+          <p class="card-text text-muted">Identify and verify speakers with high precision using XLSR-53.</p>
+          <span class="badge bg-primary rounded-pill mt-3">Active</span>
+        </div>
       </div>
     </a>
   </div>
 
-  <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('intent_page') }}">
-      <div class="card-body">
-        <div class="task-icon">🎯</div>
-        <h5 class="card-title">Intent</h5>
-        <p class="card-text">Understand speaker intent</p>
-        <span class="badge bg-secondary">Soon</span>
+  <!-- Gender Card -->
+  <div class="col-md-6 col-lg-3 animate-fade-in delay-3">
+    <a class="task-card" href="{{ url_for('gender_page') }}">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <div class="task-icon" style="filter: grayscale(1); opacity: 0.7;">
+            <i class="bi bi-person-standing"></i><i class="bi bi-person-standing-dress"></i>
+          </div>
+          <h5 class="card-title text-muted">Gender</h5>
+          <p class="card-text text-muted">Classify speaker gender from audio samples.</p>
+          <span class="badge bg-secondary rounded-pill mt-3">Coming Soon</span>
+        </div>
       </div>
     </a>
   </div>
 
-  <div class="col-md-6 col-lg-3">
-    <a class="task-card card" href="{{ url_for('speaker_page') }}">
-      <div class="card-body">
-        <div class="task-icon">🗣️</div>
-        <h5 class="card-title">Speaker</h5>
-        <p class="card-text">Recognize speaker identity</p>
-        <span class="badge bg-success">Active</span>
+  <!-- Intent Card -->
+  <div class="col-md-6 col-lg-3 animate-fade-in delay-3">
+    <a class="task-card" href="{{ url_for('intent_page') }}">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <div class="task-icon" style="filter: grayscale(1); opacity: 0.7;">
+            <i class="bi bi-bullseye"></i>
+          </div>
+          <h5 class="card-title text-muted">Intent</h5>
+          <p class="card-text text-muted">Understand the underlying intent of spoken commands.</p>
+          <span class="badge bg-secondary rounded-pill mt-3">Coming Soon</span>
+        </div>
       </div>
     </a>
   </div>

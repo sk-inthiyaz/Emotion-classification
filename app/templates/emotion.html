@@ -2,124 +2,157 @@
 {% block content %}
 <div class="row">
   <div class="col-lg-8">
-    <h2 class="mb-3">Emotion Classification</h2>
-    <p class="text-muted">Upload or record audio to detect emotions using HuBERT-large + SVM</p>
+    <div class="d-flex align-items-center mb-4">
+      <div class="task-icon me-3 mb-0" style="font-size: 2.5rem;">😊</div>
+      <div>
+        <h2 class="mb-1">Emotion Classification</h2>
+        <p class="text-muted mb-0">Detect subtle emotional cues using HuBERT-large + SVM</p>
+      </div>
+    </div>
 
     <!-- Recording Section -->
-    <div class="card p-4 mb-3" id="recordingCard">
-      <h5 class="mb-3"><i class="bi bi-mic"></i> Record Audio</h5>
-      <div class="d-flex flex-column gap-2">
-        <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-danger" id="recordBtn" type="button">
-            <i class="bi bi-mic-fill"></i> Start Recording
-          </button>
-          <button class="btn btn-secondary" id="stopBtn" type="button" disabled>
-            <i class="bi bi-stop-fill"></i> Stop
-          </button>
-          <button class="btn btn-outline-primary" id="playRecordedBtn" type="button" disabled>
-            <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
-          </button>
-        </div>
+    <div class="card mb-4" id="recordingCard">
+      <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-mic-fill me-2"></i>Record Audio</h5>
 
-        <!-- Audio Visualizer for Recording -->
-        <div id="recordedAudioPlayer" class="audio-player d-none">
-          <div class="audio-controls">
-            <div class="audio-time">
-              <span id="recordedCurrentTime">0:00</span> / <span id="recordedDuration">0:00</span>
-            </div>
-            <div class="audio-wave">
-              <div class="audio-progress" id="recordedProgress"></div>
+        <div class="d-flex flex-column gap-3">
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-danger" id="recordBtn" type="button">
+              <i class="bi bi-mic-fill"></i> Start Recording
+            </button>
+            <button class="btn btn-secondary" id="stopBtn" type="button" disabled>
+              <i class="bi bi-stop-fill"></i> Stop
+            </button>
+            <button class="btn btn-outline-primary" id="playRecordedBtn" type="button" disabled>
+              <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
+            </button>
+          </div>
+
+          <!-- Audio Visualizer for Recording -->
+          <div id="recordedAudioPlayer" class="audio-player d-none">
+            <div class="audio-controls">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">Recorded Audio</span>
+                <div class="audio-time">
+                  <span id="recordedCurrentTime">0:00</span> / <span id="recordedDuration">0:00</span>
+                </div>
+              </div>
+              <div class="audio-wave">
+                <div class="audio-progress" id="recordedProgress"></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div id="recordingStatus" class="text-muted small"></div>
-        <audio id="audioPlayback" class="d-none"></audio>
-        <button class="btn btn-success d-none" id="useRecordingBtn" type="button">
-          <i class="bi bi-check-circle"></i> Use This Recording
-        </button>
+          <div id="recordingStatus" class="text-muted small fst-italic"></div>
+          <audio id="audioPlayback" class="d-none"></audio>
+
+          <button class="btn btn-success d-none" id="useRecordingBtn" type="button">
+            <i class="bi bi-check-circle-fill me-2"></i> Use This Recording
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Upload Section -->
-    <div class="card p-4 mb-4">
-      <h5 class="mb-3"><i class="bi bi-cloud-upload"></i> Upload Audio File</h5>
-      <form action="{{ url_for('emotion_predict') }}" method="post" enctype="multipart/form-data" id="emotionForm">
-        <div class="mb-3">
-          <label class="form-label">Audio File</label>
-          <input class="form-control" type="file" name="audio" id="fileInput" accept="audio/*">
-          <div class="form-text">Supported: WAV, MP3, FLAC, OGG, M4A, WebM</div>
-        </div>
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-cloud-upload-fill me-2"></i>Upload Audio File</h5>
 
-        <!-- Audio Preview for Uploaded File -->
-        <div id="uploadedAudioPlayer" class="audio-player d-none mb-3">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <button class="btn btn-outline-primary btn-sm" id="playUploadedBtn" type="button">
-              <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
-            </button>
-            <div class="flex-grow-1">
-              <div class="audio-time">
-                <span id="uploadedCurrentTime">0:00</span> / <span id="uploadedDuration">0:00</span>
-              </div>
-              <div class="audio-wave">
-                <div class="audio-progress" id="uploadedProgress"></div>
+        <form action="{{ url_for('emotion_predict') }}" method="post" enctype="multipart/form-data" id="emotionForm">
+          <div class="mb-4">
+            <label class="form-label">Select Audio File</label>
+            <input class="form-control" type="file" name="audio" id="fileInput" accept="audio/*">
+            <div class="form-text">Supported formats: WAV, MP3, FLAC, OGG, M4A, WebM</div>
+          </div>
+
+          <!-- Audio Preview for Uploaded File -->
+          <div id="uploadedAudioPlayer" class="audio-player d-none mb-4">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <button class="btn btn-outline-primary btn-sm rounded-circle p-2" id="playUploadedBtn" type="button"
+                style="width: 40px; height: 40px;">
+                <i class="bi bi-play-fill"></i>
+              </button>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="text-muted small">Preview</span>
+                  <div class="audio-time">
+                    <span id="uploadedCurrentTime">0:00</span> / <span id="uploadedDuration">0:00</span>
+                  </div>
+                </div>
+                <div class="audio-wave">
+                  <div class="audio-progress" id="uploadedProgress"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <audio id="uploadedAudioPlayback" class="d-none"></audio>
+          <audio id="uploadedAudioPlayback" class="d-none"></audio>
 
-        <button class="btn btn-primary" type="submit" id="submitBtn">
-          <span class="btn-text">Predict Emotion</span>
-          <span class="spinner-border spinner-border-sm ms-2 d-none" id="spinner"></span>
-        </button>
-      </form>
+          <button class="btn btn-primary w-100" type="submit" id="submitBtn">
+            <span class="btn-text">Analyze Emotion</span>
+            <span class="spinner-border spinner-border-sm ms-2 d-none" id="spinner"></span>
+          </button>
+        </form>
+      </div>
     </div>
 
     {% if result %}
-    <div class="card p-4">
-      <h5 class="mb-3">Result</h5>
-      <div class="prediction-label mb-4">
-        <span class="badge bg-primary">{{ result.label }}</span>
-      </div>
+    <div class="card animate-fade-in">
+      <div class="card-body">
+        <h5 class="card-title mb-4">Analysis Result</h5>
 
-      {% if result.probabilities %}
-      <h6 class="mb-3">Probabilities</h6>
-      {% for label, prob in result.probabilities.items() %}
-      <div class="prob-item">
-        <div class="d-flex justify-content-between mb-1">
-          <span class="fw-semibold">{{ label }}</span>
-          <span class="text-muted">{{ '%.1f' % (prob * 100) }}%</span>
+        <div class="text-center mb-5">
+          <div class="prediction-label">
+            <span class="badge">{{ result.label }}</span>
+          </div>
+          <p class="text-muted">Predicted Emotion</p>
         </div>
-        <div class="progress">
-          <div class="progress-bar" style="width: {{ '%.1f' % (prob * 100) }}%;"></div>
+
+        {% if result.probabilities %}
+        <h6 class="mb-3 text-muted text-uppercase small fw-bold">Confidence Scores</h6>
+        <div class="row g-3">
+          {% for label, prob in result.probabilities.items() %}
+          <div class="col-md-6">
+            <div class="prob-item">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="fw-semibold">{{ label }}</span>
+                <span class="text-primary">{{ '%.1f' % (prob * 100) }}%</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar" style="width: {{ '%.1f' % (prob * 100) }}%;"></div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
         </div>
+        {% endif %}
       </div>
-      {% endfor %}
-      {% endif %}
     </div>
     {% endif %}
   </div>
 
   <div class="col-lg-4">
-    <div class="card info-card p-3 mb-3">
-      <h6>Model Details</h6>
-      <ul class="small mb-0">
-        <li><strong>Embeddings:</strong> HuBERT-large</li>
-        <li><strong>Classifier:</strong> SVM (RBF)</li>
-        <li><strong>Accuracy:</strong> 79.14%</li>
-        <li><strong>Dimensions:</strong> 1024</li>
-      </ul>
+    <div class="card info-card mb-4">
+      <div class="card-body">
+        <h6><i class="bi bi-cpu-fill me-2"></i>Model Architecture</h6>
+        <ul class="list-unstyled small mb-0 text-muted">
+          <li class="mb-2"><strong>Embeddings:</strong> HuBERT-large</li>
+          <li class="mb-2"><strong>Classifier:</strong> SVM (RBF Kernel)</li>
+          <li class="mb-2"><strong>Accuracy:</strong> 79.14%</li>
+          <li><strong>Feature Dim:</strong> 1024</li>
+        </ul>
+      </div>
     </div>
 
-    <div class="card tips-card p-3">
-      <h6>Tips</h6>
-      <ul class="small mb-0">
-        <li>Clear audio works best</li>
-        <li>3-30 seconds optimal</li>
-        <li>First run downloads model</li>
-      </ul>
+    <div class="card tips-card">
+      <div class="card-body">
+        <h6><i class="bi bi-lightbulb-fill me-2"></i>Best Practices</h6>
+        <ul class="list-unstyled small mb-0 text-muted">
+          <li class="mb-2"><i class="bi bi-check2 me-2 text-success"></i>Use clear, noise-free audio</li>
+          <li class="mb-2"><i class="bi bi-check2 me-2 text-success"></i>Keep duration between 3-15s</li>
+          <li><i class="bi bi-check2 me-2 text-success"></i>Speak naturally</li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>
@@ -167,7 +200,9 @@
 
     audioElement.addEventListener('ended', function () {
       isPlaying = false;
-      playButton.querySelector('.play-text').textContent = 'Play';
+      if (playButton.querySelector('.play-text')) {
+        playButton.querySelector('.play-text').textContent = 'Play';
+      }
       playButton.querySelector('i').className = 'bi bi-play-fill';
       progressEl.style.width = '0%';
       progressEl.classList.remove('playing');
@@ -176,11 +211,15 @@
     playButton.addEventListener('click', function () {
       if (isPlaying) {
         audioElement.pause();
-        playButton.querySelector('.play-text').textContent = 'Play';
+        if (playButton.querySelector('.play-text')) {
+          playButton.querySelector('.play-text').textContent = 'Play';
+        }
         playButton.querySelector('i').className = 'bi bi-play-fill';
       } else {
         audioElement.play();
-        playButton.querySelector('.play-text').textContent = 'Pause';
+        if (playButton.querySelector('.play-text')) {
+          playButton.querySelector('.play-text').textContent = 'Pause';
+        }
         playButton.querySelector('i').className = 'bi bi-pause-fill';
       }
       isPlaying = !isPlaying;
@@ -235,6 +274,7 @@
         playRecordedBtn.disabled = false;
         useRecordingBtn.classList.remove('d-none');
         recordingStatus.textContent = 'Recording saved. Click Play to listen or Use This Recording to analyze.';
+        recordingStatus.className = 'text-success small fst-italic';
 
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -247,10 +287,10 @@
       useRecordingBtn.classList.add('d-none');
       recordedAudioPlayer.classList.add('d-none');
       recordingStatus.textContent = 'Recording... Click Stop when done.';
-      recordingStatus.classList.add('text-danger');
+      recordingStatus.className = 'text-danger small fst-italic';
     } catch (err) {
       recordingStatus.textContent = 'Error: ' + err.message;
-      recordingStatus.classList.add('text-danger');
+      recordingStatus.className = 'text-danger small fst-italic';
     }
   });
 
@@ -259,7 +299,6 @@
       mediaRecorder.stop();
       recordBtn.disabled = false;
       stopBtn.disabled = true;
-      recordingStatus.classList.remove('text-danger');
     }
   });
 
@@ -275,8 +314,11 @@
 
       // Scroll to upload section
       document.getElementById('emotionForm').scrollIntoView({ behavior: 'smooth' });
-      recordingStatus.textContent = 'Recording loaded. Click "Predict Emotion" below to analyze.';
-      recordingStatus.classList.add('text-success');
+      recordingStatus.textContent = 'Recording loaded into form. Click "Analyze Emotion" below.';
+
+      // Trigger change event to show preview
+      const event = new Event('change');
+      fileInput.dispatchEvent(event);
     }
   });
 
