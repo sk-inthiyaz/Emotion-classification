@@ -9,6 +9,25 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import torch
 import joblib
 import numpy as np
+from pydub import AudioSegment
+import imageio_ffmpeg
+
+# Set ffmpeg path for pydub
+AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
+
+def convert_to_wav(input_path: str, target_path: str) -> str:
+    """
+    Converts any audio file to 16kHz Mono WAV using pydub.
+    Returns the path to the converted file.
+    """
+    try:
+        audio = AudioSegment.from_file(input_path)
+        audio = audio.set_frame_rate(16000).set_channels(1)
+        audio.export(target_path, format="wav")
+        return target_path
+    except Exception as e:
+        print(f"Error converting audio: {e}")
+        return input_path # Fallback to original if conversion fails
 
 
 # Ensure we can import from the repo's src directory
@@ -107,6 +126,188 @@ class EmotionInferenceService:
         # Return probabilities as dict {label: prob}
         labels = list(self._encoder.classes_)
         prob_map = {str(lbl): float(probs[i]) for i, lbl in enumerate(labels)}
+        return {"label": pred_label, "probabilities": prob_map}
+
+
+
+
+class GenderInferenceService:
+    """
+    Inference service using WavLM embeddings + Logistic Regression classifier.
+    """
+    def __init__(self):
+        self.device = torch.device("cpu")
+        self._extractor = None
+        self._classifier = None
+        self._scaler = None
+        self._pca = None
+        self._encoder = None
+
+    @property
+    def extractor(self):
+        global HuBERTFeatureExtractor
+        if self._extractor is None:
+            if HuBERTFeatureExtractor is None:
+                from importlib.machinery import SourceFileLoader
+                import types
+                module_path = SRC_DIR / "2_wavlm_feature_extraction.py"
+                loader = SourceFileLoader("wavlm_feature_extraction", str(module_path))
+                mod = types.ModuleType(loader.name)
+                loader.exec_module(mod)
+                HuBERTFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
+            
+            # Use WavLM-base model
+            self._extractor = HuBERTFeatureExtractor(model_name="microsoft/wavlm-base")
+        return self._extractor
+
+    def _load_gender_artifacts(self):
+        if self._classifier is not None:
+            return
+
+        model_path = MODELS_DIR / "gender_classifier.pkl"
+        scaler_path = MODELS_DIR / "gender_scaler.pkl"
+        pca_path = MODELS_DIR / "gender_pca.pkl"
+        encoder_path = MODELS_DIR / "gender_label_encoder.pkl"
+
+        if not model_path.exists():
+            raise FileNotFoundError(f"Missing Gender model file: {model_path}")
+        
+        self._classifier = joblib.load(model_path)
+        self._scaler = joblib.load(scaler_path)
+        self._pca = joblib.load(pca_path)
+        self._encoder = joblib.load(encoder_path)
+
+    def predict_gender(self, audio_path: Path) -> Dict[str, object]:
+        self._load_gender_artifacts()
+
+        # 0) Convert/Resample to 16kHz WAV
+        # We create a temp file for the converted version to ensure it's clean
+        temp_wav = audio_path.with_suffix(".converted.wav")
+        clean_path = convert_to_wav(str(audio_path), str(temp_wav))
+
+        # 1) Extract embedding
+        # Use the clean path
+        emb = self.extractor.extract_from_file(clean_path, pooling="mean")
+        
+        # L2 Normalize (as in training)
+        norm = np.linalg.norm(emb)
+        if norm > 0:
+            emb = emb / norm
+            
+        emb = emb.reshape(1, -1)
+
+        # 2) Scale
+        emb_scaled = self._scaler.transform(emb)
+        
+        # 3) PCA
+        emb_pca = self._pca.transform(emb_scaled)
+
+        # 4) Classify
+        pred_idx = int(self._classifier.predict(emb_pca)[0])
+        pred_label = str(self._encoder.inverse_transform([pred_idx])[0])
+        
+        # Probabilities
+        if hasattr(self._classifier, "predict_proba"):
+            probs = self._classifier.predict_proba(emb_pca)[0]
+        else:
+            probs = np.ones(len(self._encoder.classes_)) / len(self._encoder.classes_)
+
+        labels = list(self._encoder.classes_)
+        prob_map = {str(lbl): float(probs[i]) for i, lbl in enumerate(labels)}
+            
+        # Cleanup temp file if created
+        if str(temp_wav) != str(audio_path) and os.path.exists(temp_wav):
+            try:
+                os.remove(temp_wav)
+            except:
+                pass
+
+        return {"label": pred_label, "probabilities": prob_map}
+
+
+
+class IntentInferenceService:
+    """
+    Inference service for SLURP Intent Classification using WavLM.
+    """
+    def __init__(self):
+        self.device = torch.device("cpu")
+        self._extractor = None
+        self._model = None
+        self._classifier = None
+        self._scaler = None
+        self._pca = None
+        self._encoder = None
+        self._model_path = MODELS_DIR / "intent_classifier.pkl"
+        self._scaler_path = MODELS_DIR / "intent_scaler.pkl"
+        self._pca_path = MODELS_DIR / "intent_pca.pkl"
+        self._encoder_path = MODELS_DIR / "intent_label_encoder.pkl"
+
+    def _load_intent_artifacts(self):
+        if self._classifier is not None:
+            return
+
+        # Load Extractor and Model
+        if self._extractor is None:
+            from transformers import AutoFeatureExtractor, AutoModel
+            import librosa # Ensure librosa is available
+            
+            model_name = "microsoft/wavlm-base-plus"
+            self._extractor = AutoFeatureExtractor.from_pretrained(model_name)
+            self._model = AutoModel.from_pretrained(model_name)
+
+        if not self._model_path.exists():
+            raise FileNotFoundError(f"Intent model not found at {self._model_path}")
+        
+        self._classifier = joblib.load(self._model_path)
+        self._scaler = joblib.load(self._scaler_path)
+        self._pca = joblib.load(self._pca_path)
+        self._encoder = joblib.load(self._encoder_path)
+
+    def predict_intent(self, audio_path: Path) -> Dict[str, object]:
+        self._load_intent_artifacts()
+
+        # 0) Convert/Resample to 16kHz WAV
+        temp_wav = audio_path.with_suffix(".converted.wav")
+        clean_path = convert_to_wav(str(audio_path), str(temp_wav))
+
+        # 1) Extract embedding using AutoModel
+        import librosa
+        audio, sr = librosa.load(clean_path, sr=16000)
+        
+        inputs = self._extractor(audio, sampling_rate=16000, return_tensors="pt")
+        with torch.no_grad():
+            outputs = self._model(**inputs)
+        
+        # Mean Pooling
+        emb = outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
+        
+        # L2 Normalize
+        norm = np.linalg.norm(emb)
+        if norm > 0:
+            emb = emb / norm
+            
+        emb = emb.reshape(1, -1)
+
+        # 2) Scale
+        emb_scaled = self._scaler.transform(emb)
+        
+        # 3) PCA
+        emb_pca = self._pca.transform(emb_scaled)
+
+        # 4) Classify
+        pred_raw = self._classifier.predict(emb_pca)[0]
+        pred_label = str(pred_raw)
+        
+        # Probabilities
+        if hasattr(self._classifier, "predict_proba"):
+            probs = self._classifier.predict_proba(emb_pca)[0]
+            # Use classifier.classes_ which matches prob order
+            labels = self._classifier.classes_
+            prob_map = {str(lbl): float(p) for lbl, p in zip(labels, probs)}
+        else:
+            prob_map = {pred_label: 1.0}
+
         return {"label": pred_label, "probabilities": prob_map}
 
 
@@ -211,7 +412,14 @@ class SpeakerInferenceService:
 
         # Return probabilities as dict {label: prob}
         labels = list(self._encoder.classes_)
-        prob_map = {str(lbl): float(probs[i]) for i, lbl in enumerate(labels)}
+        # Create list of (label, prob) tuples
+        prob_list = [(str(lbl), float(probs[i])) for i, lbl in enumerate(labels)]
+        # Sort by probability descending
+        prob_list.sort(key=lambda x: x[1], reverse=True)
+        # Take top 5
+        top_5 = prob_list[:5]
+        
+        prob_map = {lbl: prob for lbl, prob in top_5}
         return {"label": pred_label, "probabilities": prob_map}
 
 
@@ -223,6 +431,8 @@ def create_app() -> Flask:
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
     emotion_service = EmotionInferenceService()
+    gender_service = GenderInferenceService()
+    intent_service = IntentInferenceService()
     speaker_service = SpeakerInferenceService()
 
     ALLOWED_EXTENSIONS = {"wav", "mp3", "flac", "ogg", "m4a", "webm"}
@@ -276,35 +486,79 @@ def create_app() -> Flask:
             except Exception:
                 pass
 
-    @app.route("/gender", methods=["GET", "POST"])
+    @app.route("/gender", methods=["GET"])
     def gender_page():
-        placeholder = {
-            "label": "N/A",
-            "note": "Gender model not integrated yet. Page is functional.",
-        }
-        if request.method == "POST":
-            file = request.files.get("audio")
-            if file is None or file.filename == "":
-                flash("Please upload an audio file.")
-                return redirect(url_for("gender_page"))
-            flash("Uploaded successfully. Inference not yet implemented.")
-            return render_template("gender.html", result=placeholder)
-        return render_template("gender.html", result=None)
+        result = session.pop("gender_result", None)
+        return render_template("gender.html", result=result)
 
-    @app.route("/intent", methods=["GET", "POST"])
+    @app.route("/gender/predict", methods=["POST"])
+    def gender_predict():
+        file = request.files.get("audio")
+        if file is None or file.filename == "":
+            flash("Please upload an audio file.")
+            return redirect(url_for("gender_page"))
+        
+        filename = file.filename
+        file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "unknown"
+        
+        if file_ext not in ALLOWED_EXTENSIONS:
+            flash("Unsupported file type. Upload wav, mp3, flac, ogg, m4a, or webm.")
+            return redirect(url_for("gender_page"))
+
+        suffix = "." + file_ext
+        with tempfile.NamedTemporaryFile(delete=False, dir=uploads_dir, suffix=suffix) as tmp:
+            file.save(tmp.name)
+            tmp_path = Path(tmp.name)
+
+        try:
+            result = gender_service.predict_gender(tmp_path)
+            session["gender_result"] = result
+            return redirect(url_for("gender_page"))
+        except Exception as e:
+            flash(f"Error during prediction: {e}")
+            return redirect(url_for("gender_page"))
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+    @app.route("/intent", methods=["GET"])
     def intent_page():
-        placeholder = {
-            "label": "N/A",
-            "note": "Intent model not integrated yet. Page is functional.",
-        }
-        if request.method == "POST":
-            file = request.files.get("audio")
-            if file is None or file.filename == "":
-                flash("Please upload an audio file.")
-                return redirect(url_for("intent_page"))
-            flash("Uploaded successfully. Inference not yet implemented.")
-            return render_template("intent.html", result=placeholder)
-        return render_template("intent.html", result=None)
+        result = session.pop("intent_result", None)
+        return render_template("intent.html", result=result)
+
+    @app.route("/intent/predict", methods=["POST"])
+    def intent_predict():
+        file = request.files.get("audio")
+        if file is None or file.filename == "":
+            flash("Please upload an audio file.")
+            return redirect(url_for("intent_page"))
+        
+        filename = file.filename
+        file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "unknown"
+        
+        if file_ext not in ALLOWED_EXTENSIONS:
+            flash("Unsupported file type. Upload wav, mp3, flac, ogg, m4a, or webm.")
+            return redirect(url_for("intent_page"))
+
+        suffix = "." + file_ext
+        with tempfile.NamedTemporaryFile(delete=False, dir=uploads_dir, suffix=suffix) as tmp:
+            file.save(tmp.name)
+            tmp_path = Path(tmp.name)
+
+        try:
+            result = intent_service.predict_intent(tmp_path)
+            session["intent_result"] = result
+            return redirect(url_for("intent_page"))
+        except Exception as e:
+            flash(f"Error during prediction: {e}")
+            return redirect(url_for("intent_page"))
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
 
     @app.route("/speaker", methods=["GET"])
     def speaker_page():
