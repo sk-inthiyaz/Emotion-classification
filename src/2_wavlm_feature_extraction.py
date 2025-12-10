@@ -68,15 +68,11 @@ class WavLMFeatureExtractor:
         logger.info(f"Loading WavLM model: {model_name}")
         logger.info(f"Using device: {self.device} (CPU-only mode)")
         
-        # Detect model type and load appropriate processor/model
-        if "hubert" in model_name.lower():
-            # HuBERT models use Wav2Vec2FeatureExtractor
-            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-            self.model = HubertModel.from_pretrained(model_name)
-        else:
-            # WavLM models use Wav2Vec2Processor
-            self.processor = Wav2Vec2Processor.from_pretrained(model_name)
-            self.model = WavLMModel.from_pretrained(model_name)
+        from transformers import Wav2Vec2FeatureExtractor, WavLMModel
+
+        self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
+        self.model = WavLMModel.from_pretrained(model_name)
+                
         
         self.model.to(self.device)
         self.model.eval()
@@ -194,7 +190,7 @@ class WavLMFeatureExtractor:
                 audio.numpy(),
                 sampling_rate=16000,
                 return_tensors="pt",
-                padding=True
+                #padding=True
             )
             
             # Move to device
