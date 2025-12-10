@@ -24,7 +24,7 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Optional
 from tqdm import tqdm
-from transformers import Wav2Vec2Processor, WavLMModel, Wav2Vec2FeatureExtractor, HubertModel
+from transformers import WavLMModel, Wav2Vec2FeatureExtractor, HubertModel
 
 # Configure logging
 logging.basicConfig(
