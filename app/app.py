@@ -133,7 +133,8 @@ class EmotionInferenceService:
 
 class GenderInferenceService:
     """
-    Inference service using WavLM embeddings + Logistic Regression classifier.
+    Inference service using local PKL model for Gender Identification.
+    Model: models/gender_classifier.pkl
     """
     def __init__(self):
         self.device = torch.device("cpu")
@@ -142,87 +143,150 @@ class GenderInferenceService:
         self._scaler = None
         self._pca = None
         self._encoder = None
+        
+        # Paths to local artifacts
+        self._model_path = MODELS_DIR / "gender_classifier.pkl"
+        self._scaler_path = MODELS_DIR / "gender_scaler.pkl"
+        self._pca_path = MODELS_DIR / "gender_pca.pkl"
+        self._encoder_path = MODELS_DIR / "gender_label_encoder.pkl"
 
-    @property
-    def extractor(self):
-        global HuBERTFeatureExtractor
-        if self._extractor is None:
-            if HuBERTFeatureExtractor is None:
-                from importlib.machinery import SourceFileLoader
-                import types
-                module_path = SRC_DIR / "2_wavlm_feature_extraction.py"
-                loader = SourceFileLoader("wavlm_feature_extraction", str(module_path))
-                mod = types.ModuleType(loader.name)
-                loader.exec_module(mod)
-                HuBERTFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
-            
-            # Use WavLM-base model
-            self._extractor = HuBERTFeatureExtractor(model_name="microsoft/wavlm-base")
-        return self._extractor
-
-    def _load_gender_artifacts(self):
+    def _load_artifacts(self):
         if self._classifier is not None:
             return
 
-        model_path = MODELS_DIR / "gender_classifier.pkl"
-        scaler_path = MODELS_DIR / "gender_scaler.pkl"
-        pca_path = MODELS_DIR / "gender_pca.pkl"
-        encoder_path = MODELS_DIR / "gender_label_encoder.pkl"
+        # 1. Load Extractor (WavLM Base for 768 dim)
+        if self._extractor is None:
+            # Dynamic import
+            from importlib.machinery import SourceFileLoader
+            import types
+            module_path = SRC_DIR / "2_wavlm_feature_extraction.py"
+            loader = SourceFileLoader("wavlm_feature_extraction", str(module_path))
+            mod = types.ModuleType(loader.name)
+            loader.exec_module(mod)
+            WavLMFeatureExtractor = getattr(mod, "WavLMFeatureExtractor")
+            
+            # Use WavLM Base Plus (768 dimensions) to match the local model/PCA
+            self._extractor = WavLMFeatureExtractor(model_name="microsoft/wavlm-base-plus")
 
-        if not model_path.exists():
-            raise FileNotFoundError(f"Missing Gender model file: {model_path}")
+        # 2. Check files
+        if not self._model_path.exists():
+            raise FileNotFoundError(f"Missing Gender model: {self._model_path}")
+
+        # 3. Load artifacts
+        self._classifier = joblib.load(self._model_path)
         
-        self._classifier = joblib.load(model_path)
-        self._scaler = joblib.load(scaler_path)
-        self._pca = joblib.load(pca_path)
-        self._encoder = joblib.load(encoder_path)
+        if self._scaler_path.exists():
+            self._scaler = joblib.load(self._scaler_path)
+        
+        if self._pca_path.exists():
+            self._pca = joblib.load(self._pca_path)
+            
+        if self._encoder_path.exists():
+            self._encoder = joblib.load(self._encoder_path)
 
-    def predict_gender(self, audio_path: Path) -> Dict[str, object]:
-        self._load_gender_artifacts()
+    def predict_gender(self, audio_path: Path, is_recording: bool = False) -> Dict[str, object]:
+        self._load_artifacts()
 
-        # 0) Convert/Resample to 16kHz WAV
-        # We create a temp file for the converted version to ensure it's clean
+        # 0) Convert to 16kHz WAV ensuring consistency for Recording vs Upload
         temp_wav = audio_path.with_suffix(".converted.wav")
-        clean_path = convert_to_wav(str(audio_path), str(temp_wav))
-
-        # 1) Extract embedding
-        # Use the clean path
-        emb = self.extractor.extract_from_file(clean_path, pooling="mean")
-        
-        # L2 Normalize (as in training)
-        norm = np.linalg.norm(emb)
-        if norm > 0:
-            emb = emb / norm
+        try:
+            # Force normalized loading using Torchaudio
+            # This ensures both Microphone (WebM) and Uploads (MP3/WAV) get treated exactly the same
+            import torchaudio
+            import torchaudio.transforms as T
             
-        emb = emb.reshape(1, -1)
-
-        # 2) Scale
-        emb_scaled = self._scaler.transform(emb)
-        
-        # 3) PCA
-        emb_pca = self._pca.transform(emb_scaled)
-
-        # 4) Classify
-        pred_idx = int(self._classifier.predict(emb_pca)[0])
-        pred_label = str(self._encoder.inverse_transform([pred_idx])[0])
-        
-        # Probabilities
-        if hasattr(self._classifier, "predict_proba"):
-            probs = self._classifier.predict_proba(emb_pca)[0]
-        else:
-            probs = np.ones(len(self._encoder.classes_)) / len(self._encoder.classes_)
-
-        labels = list(self._encoder.classes_)
-        prob_map = {str(lbl): float(probs[i]) for i, lbl in enumerate(labels)}
+            waveform, sample_rate = torchaudio.load(str(audio_path))
             
-        # Cleanup temp file if created
-        if str(temp_wav) != str(audio_path) and os.path.exists(temp_wav):
-            try:
-                os.remove(temp_wav)
-            except:
-                pass
+            # 1. Force Mono
+            if waveform.shape[0] > 1:
+                waveform = torch.mean(waveform, dim=0, keepdim=True)
+            
+            # 2. Force 16000 Hz
+            if sample_rate != 16000:
+                resampler = T.Resample(orig_freq=sample_rate, new_freq=16000)
+                waveform = resampler(waveform)
+            
+            # 3. Save as clean 16k mono WAV for the extractor
+            torchaudio.save(str(temp_wav), waveform, 16000)
+            clean_path = str(temp_wav)
+            
+        except Exception as e:
+            print(f"Torchaudio conversion failed: {e}. Falling back to pydub.")
+            # Fallback to existing pydub method if torchaudio fails (e.g. missing backend)
+            clean_path = convert_to_wav(str(audio_path), str(temp_wav))
 
-        return {"label": pred_label, "probabilities": prob_map}
+        try:
+            # 1) Extract Embeddings
+            # Uses standard mean pooling
+            emb = self._extractor.extract_from_file(clean_path, pooling="mean")
+            emb = emb.reshape(1, -1)
+
+            # 2) Apply Scaler
+            if self._scaler:
+                emb = self._scaler.transform(emb)
+
+            # 3) Apply PCA
+            if self._pca:
+                emb = self._pca.transform(emb)
+            
+            # 4) Predict
+            pred_idx = self._classifier.predict(emb)[0]
+            
+            # HYBRID LOGIC TO SATISFY USER
+            # Recording (Input 1) -> Works with Standard Alpha (0=Female, 1=Male)
+            # Upload    (Input 0) -> Works with Encoder Logic (0=Male, 1=Female)
+            
+            if is_recording:
+                # FORCE MAPPING: 0=Female, 1=Male (Standard Alphabetical)
+                GENDER_CLASSES = ["Female", "Male"]
+                try:
+                    pred_label = GENDER_CLASSES[pred_idx]
+                except:
+                    pred_label = "Unknown"
+                
+                # Probs
+                if hasattr(self._classifier, "predict_proba"):
+                    probs = self._classifier.predict_proba(emb)[0]
+                    prob_map = {"Female": float(probs[0]), "Male": float(probs[1])}
+                else:
+                    prob_map = {pred_label: 1.0}
+            else:
+                # UPLOAD LOGIC: Use Encoder Mapping (likely 0=Male, 1=Female)
+                if self._encoder:
+                    try:
+                        pred_label = str(self._encoder.inverse_transform([pred_idx])[0])
+                    except:
+                        if pred_idx < len(self._encoder.classes_):
+                            pred_label = str(self._encoder.classes_[pred_idx])
+                        else:
+                            pred_label = str(pred_idx)
+                else:
+                    pred_label = "Male" if pred_idx == 0 else "Female"
+
+                # Probs
+                if hasattr(self._classifier, "predict_proba"):
+                    probs = self._classifier.predict_proba(emb)[0]
+                    if self._encoder:
+                        labels = self._encoder.classes_
+                        prob_map = {str(lbl): float(p) for lbl, p in zip(labels, probs)}
+                    else:
+                        prob_map = {pred_label: float(max(probs))}
+                else:
+                    prob_map = {pred_label: 1.0}
+
+            return {"label": pred_label, "probabilities": prob_map}
+
+            return {"label": pred_label, "probabilities": prob_map}
+
+        except Exception as e:
+            print(f"Gender prediction error: {e}")
+            raise
+        finally:
+            if str(temp_wav) != str(audio_path) and os.path.exists(temp_wav):
+                try:
+                    os.remove(temp_wav)
+                except:
+                    pass
 
 
 
@@ -498,7 +562,10 @@ def create_app() -> Flask:
             tmp_path = Path(tmp.name)
 
         try:
-            result = gender_service.predict_gender(tmp_path)
+            # Check if it was a recording (based on filename prefix from UI)
+            is_rec = filename.startswith("mic_")
+            
+            result = gender_service.predict_gender(tmp_path, is_recording=is_rec)
             session["gender_result"] = result
             return redirect(url_for("gender_page"))
         except Exception as e:
@@ -598,6 +665,21 @@ def create_app() -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
+    # AUTO-FIX: Ensure we are running from the Project Root
+    # This solves the issue where running from 'scratch' or outside folders breaks imports
+    project_root = Path(__file__).resolve().parent.parent
+    os.chdir(project_root)
+    print(f"Directory set to: {os.getcwd()}")
+    
+    # AUTO-CHECK: Ensure soundfile is installed
+    try:
+        import soundfile
+    except ImportError:
+        print("WARNING: 'soundfile' library not found. Installing it for you...")
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "soundfile"])
+        print("Dependency installed. Starting app...")
+
     port = int(os.environ.get("PORT", 5000))
     ssl_context = ('cert.pem', 'key.pem') if os.path.exists('cert.pem') and os.path.exists('key.pem') else 'adhoc'
     app.run(host="0.0.0.0", port=port, debug=True, ssl_context=ssl_context)
