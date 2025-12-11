@@ -212,6 +212,9 @@ class WavLMFeatureExtractor:
             # Apply pooling
             if pooling == "mean":
                 embedding = hidden_states.mean(dim=1)
+            elif pooling == "std":
+                # Standard deviation pooling (for speaker identification)
+                embedding = hidden_states.std(dim=1)
             elif pooling == "max":
                 embedding = hidden_states.max(dim=1)[0]
             elif pooling == "first":

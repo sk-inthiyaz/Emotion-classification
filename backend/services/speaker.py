@@ -95,13 +95,22 @@ class SpeakerInferenceService:
         """
         self._load_artifacts()
         
-        # Extract embeddings using XLSR-53 with mean pooling
-        # Note: Original used custom pooling (layers 6-13), but using mean pooling for compatibility
-        embedding = self._extractor.extract_from_file(str(audio_path), pooling="mean")
+        # Extract embeddings using XLSR-53
+        # The model expects 2048 features (1024 mean + 1024 std concatenated)
+        embedding_mean = self._extractor.extract_from_file(str(audio_path), pooling="mean")
+        embedding_std = self._extractor.extract_from_file(str(audio_path), pooling="std")
+        
+        # Concatenate mean and std to get 2048 features
+        embedding = np.concatenate([embedding_mean, embedding_std])
         embedding = embedding.reshape(1, -1)
         
-        # Handle NaN values (replace with 0)
-        embedding = np.nan_to_num(embedding, nan=0.0, posinf=0.0, neginf=0.0)
+        # Handle NaN values (replace with mean)
+        nan_count = np.isnan(embedding).sum()
+        if nan_count > 0:
+            print(f"Warning: {nan_count} NaN values in speaker embedding, replacing with mean")
+            col_mean = np.nanmean(embedding, axis=0)
+            embedding = np.where(np.isnan(embedding), col_mean, embedding)
+            embedding = np.nan_to_num(embedding, nan=0.0, posinf=0.0, neginf=0.0)
         
         # Apply PCA for dimensionality reduction
         embedding_pca = self._pca.transform(embedding)
