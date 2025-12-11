@@ -136,10 +136,25 @@ class IntentInferenceService:
             
             # Predict intent
             prediction_raw = self._classifier.predict(embedding_final)[0]
-            prediction_label = str(prediction_raw)
             
-            # Get probability estimates
-            labels = self._classifier.classes_ if hasattr(self._classifier, "classes_") else [prediction_label]
+            # Decode the prediction using label encoder
+            if self._encoder is not None:
+                prediction_label = self._encoder.inverse_transform([prediction_raw])[0]
+            else:
+                prediction_label = str(prediction_raw)
+            
+            # Get probability estimates and decode class labels
+            if hasattr(self._classifier, "classes_"):
+                class_indices = self._classifier.classes_
+                # Decode all class labels for probabilities
+                if self._encoder is not None:
+                    labels = self._encoder.inverse_transform(class_indices)
+                else:
+                    labels = [str(idx) for idx in class_indices]
+            else:
+                labels = [prediction_label]
+            
+            # Get probabilities with decoded labels
             probabilities = get_probabilities(self._classifier, embedding_final, labels)
             
             return {
