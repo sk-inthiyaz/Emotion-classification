@@ -94,198 +94,159 @@
         </div>
         <div class="progress">
           <div class="progress-bar" style="width: {{ '%.1f' % (prob * 100) }}%;"></div>
-        </div>
-      </div>
-      {% endfor %}
-      {% endif %}
-    </div>
-    {% endif %}
-    <ul class="small mb-0">
-      <li>Clear audio works best</li>
-      <li>3-30 seconds optimal</li>
-      <li>First run downloads model</li>
-    </ul>
-  </div>
-</div>
-</div>
+          let mediaRecorder;
+          let audioChunks = [];
+          let recordedBlob;
 
-<script>
-  // Recording functionality
-  let mediaRecorder;
-  let audioChunks = [];
-  let recordedBlob;
+          const recordBtn = document.getElementById('recordBtn');
+          const stopBtn = document.getElementById('stopBtn');
+          const playRecordedBtn = document.getElementById('playRecordedBtn');
+          const useRecordingBtn = document.getElementById('useRecordingBtn');
+          const audioPlayback = document.getElementById('audioPlayback');
+          const recordingStatus = document.getElementById('recordingStatus');
+          const fileInput = document.getElementById('fileInput');
 
-  const recordBtn = document.getElementById('recordBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const playRecordedBtn = document.getElementById('playRecordedBtn');
-  const useRecordingBtn = document.getElementById('useRecordingBtn');
-  const audioPlayback = document.getElementById('audioPlayback');
-  const recordingStatus = document.getElementById('recordingStatus');
-  const fileInput = document.getElementById('fileInput');
+          // Uploaded audio elements
+          const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
+          const playUploadedBtn = document.getElementById('playUploadedBtn');
+          const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
 
-  // Uploaded audio elements
-  const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
-  const playUploadedBtn = document.getElementById('playUploadedBtn');
-  const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
+          // Audio player helper function
+          function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, progressEl) {
+          let isPlaying = false;
 
-  // Audio player helper function
-  function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, progressEl) {
-    let isPlaying = false;
+          audioElement.addEventListener('loadedmetadata', function () {
+          durationEl.textContent = formatTime(audioElement.duration);
+          });
 
-    audioElement.addEventListener('loadedmetadata', function () {
-      durationEl.textContent = formatTime(audioElement.duration);
-    });
+          audioElement.addEventListener('timeupdate', function () {
+          currentTimeEl.textContent = formatTime(audioElement.currentTime);
+          const progress = (audioElement.currentTime / audioElement.duration) * 100;
+          progressEl.style.width = progress + '%';
+          });
 
-    audioElement.addEventListener('timeupdate', function () {
-      currentTimeEl.textContent = formatTime(audioElement.currentTime);
-      const progress = (audioElement.currentTime / audioElement.duration) * 100;
-      progressEl.style.width = progress + '%';
-    });
+          audioElement.addEventListener('play', function () {
+          progressEl.classList.add('playing');
+          });
 
-    audioElement.addEventListener('play', function () {
-      progressEl.classList.add('playing');
-    });
+          audioElement.addEventListener('pause', function () {
+          progressEl.classList.remove('playing');
+          });
 
-    audioElement.addEventListener('pause', function () {
-      progressEl.classList.remove('playing');
-    });
+          audioElement.addEventListener('ended', function () {
+          isPlaying = false;
+          playButton.querySelector('.play-text').textContent = 'Play';
+          playButton.querySelector('i').className = 'bi bi-play-fill';
+          progressEl.style.width = '0%';
+          progressEl.classList.remove('playing');
+          });
 
-    audioElement.addEventListener('ended', function () {
-      isPlaying = false;
-      playButton.querySelector('.play-text').textContent = 'Play';
-      playButton.querySelector('i').className = 'bi bi-play-fill';
-      progressEl.style.width = '0%';
-      progressEl.classList.remove('playing');
-    });
+          playButton.addEventListener('click', function () {
+          if (isPlaying) {
+          audioElement.pause();
+          playButton.querySelector('.play-text').textContent = 'Play';
+          playButton.querySelector('i').className = 'bi bi-play-fill';
+          } else {
+          audioElement.play();
+          playButton.querySelector('.play-text').textContent = 'Pause';
+          playButton.querySelector('i').className = 'bi bi-pause-fill';
+          }
+          isPlaying = !isPlaying;
+          });
+          }
 
-    playButton.addEventListener('click', function () {
-      if (isPlaying) {
-        audioElement.pause();
-        playButton.querySelector('.play-text').textContent = 'Play';
-        playButton.querySelector('i').className = 'bi bi-play-fill';
-      } else {
-        audioElement.play();
-        playButton.querySelector('.play-text').textContent = 'Pause';
-        playButton.querySelector('i').className = 'bi bi-pause-fill';
-      }
-      isPlaying = !isPlaying;
-    });
-  }
+          function formatTime(seconds) {
+          if (isNaN(seconds)) return '0:00';
+          const mins = Math.floor(seconds / 60);
+          const secs = Math.floor(seconds % 60);
+          return mins + ':' + (secs < 10 ? '0' : '' ) + secs; } // Setup recorded audio player const
+            recordedAudioPlayer=document.getElementById('recordedAudioPlayer'); setupAudioPlayer( audioPlayback,
+            playRecordedBtn, document.getElementById('recordedCurrentTime'),
+            document.getElementById('recordedDuration'), document.getElementById('recordedProgress') ); // Setup
+            uploaded audio player setupAudioPlayer( uploadedAudioPlayback, playUploadedBtn,
+            document.getElementById('uploadedCurrentTime'), document.getElementById('uploadedDuration'),
+            document.getElementById('uploadedProgress') ); recordBtn.addEventListener('click', async function () { try {
+            const stream=await navigator.mediaDevices.getUserMedia({ audio: true }); // Use audio/webm;codecs=opus for
+            better browser compatibility const options={ mimeType: 'audio/webm' }; mediaRecorder=new
+            MediaRecorder(stream, options); audioChunks=[]; mediaRecorder.ondataavailable=(event)=> {
+            audioChunks.push(event.data);
+            };
 
-  function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return mins + ':' + (secs < 10 ? '0' : '') + secs;
-  }
+            mediaRecorder.onstop = () => {
+            // Create WebM blob
+            recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(recordedBlob);
+            audioPlayback.src = audioUrl;
+            recordedAudioPlayer.classList.remove('d-none');
+            playRecordedBtn.disabled = false;
+            useRecordingBtn.classList.remove('d-none');
+            recordingStatus.textContent = 'Recording saved. Click Play to listen or Use This Recording to analyze.';
 
-  // Setup recorded audio player
-  const recordedAudioPlayer = document.getElementById('recordedAudioPlayer');
-  setupAudioPlayer(
-    audioPlayback,
-    playRecordedBtn,
-    document.getElementById('recordedCurrentTime'),
-    document.getElementById('recordedDuration'),
-    document.getElementById('recordedProgress')
-  );
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+            };
 
-  // Setup uploaded audio player
-  setupAudioPlayer(
-    uploadedAudioPlayback,
-    playUploadedBtn,
-    document.getElementById('uploadedCurrentTime'),
-    document.getElementById('uploadedDuration'),
-    document.getElementById('uploadedProgress')
-  );
+            mediaRecorder.start();
+            recordBtn.disabled = true;
+            stopBtn.disabled = false;
+            playRecordedBtn.disabled = true;
+            useRecordingBtn.classList.add('d-none');
+            recordedAudioPlayer.classList.add('d-none');
+            recordingStatus.textContent = 'Recording... Click Stop when done.';
+            recordingStatus.classList.add('text-danger');
+            } catch (err) {
+            recordingStatus.textContent = 'Error: ' + err.message;
+            recordingStatus.classList.add('text-danger');
+            }
+            });
 
-  recordBtn.addEventListener('click', async function () {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stopBtn.addEventListener('click', function () {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            recordingStatus.classList.remove('text-danger');
+            }
+            });
 
-      // Use audio/webm;codecs=opus for better browser compatibility
-      const options = { mimeType: 'audio/webm' };
-      mediaRecorder = new MediaRecorder(stream, options);
-      audioChunks = [];
+            useRecordingBtn.addEventListener('click', function () {
+            if (recordedBlob) {
+            // Create a File object with webm extension
+            const file = new File([recordedBlob], 'recording.webm', { type: 'audio/webm' });
 
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
+            // Create a DataTransfer object to set the file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
 
-      mediaRecorder.onstop = () => {
-        // Create WebM blob
-        recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(recordedBlob);
-        audioPlayback.src = audioUrl;
-        recordedAudioPlayer.classList.remove('d-none');
-        playRecordedBtn.disabled = false;
-        useRecordingBtn.classList.remove('d-none');
-        recordingStatus.textContent = 'Recording saved. Click Play to listen or Use This Recording to analyze.';
+            // Scroll to upload section
+            document.getElementById('speakerForm').scrollIntoView({ behavior: 'smooth' });
+            recordingStatus.textContent = 'Recording loaded. Click "Identify Speaker" below to analyze.';
+            recordingStatus.classList.add('text-success');
+            }
+            });
 
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-      };
+            // File input change handler
+            fileInput.addEventListener('change', function (e) {
+            if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const fileUrl = URL.createObjectURL(file);
+            uploadedAudioPlayback.src = fileUrl;
+            uploadedAudioPlayer.classList.remove('d-none');
+            } else {
+            uploadedAudioPlayer.classList.add('d-none');
+            }
+            });
 
-      mediaRecorder.start();
-      recordBtn.disabled = true;
-      stopBtn.disabled = false;
-      playRecordedBtn.disabled = true;
-      useRecordingBtn.classList.add('d-none');
-      recordedAudioPlayer.classList.add('d-none');
-      recordingStatus.textContent = 'Recording... Click Stop when done.';
-      recordingStatus.classList.add('text-danger');
-    } catch (err) {
-      recordingStatus.textContent = 'Error: ' + err.message;
-      recordingStatus.classList.add('text-danger');
-    }
-  });
+            // Form submission
+            document.getElementById('speakerForm').addEventListener('submit', function () {
+            const btn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = btn.querySelector('.btn-text');
 
-  stopBtn.addEventListener('click', function () {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      recordBtn.disabled = false;
-      stopBtn.disabled = true;
-      recordingStatus.classList.remove('text-danger');
-    }
-  });
-
-  useRecordingBtn.addEventListener('click', function () {
-    if (recordedBlob) {
-      // Create a File object with webm extension
-      const file = new File([recordedBlob], 'recording.webm', { type: 'audio/webm' });
-
-      // Create a DataTransfer object to set the file input
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInput.files = dataTransfer.files;
-
-      // Scroll to upload section
-      document.getElementById('speakerForm').scrollIntoView({ behavior: 'smooth' });
-      recordingStatus.textContent = 'Recording loaded. Click "Identify Speaker" below to analyze.';
-      recordingStatus.classList.add('text-success');
-    }
-  });
-
-  // File input change handler
-  fileInput.addEventListener('change', function (e) {
-    if (e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const fileUrl = URL.createObjectURL(file);
-      uploadedAudioPlayback.src = fileUrl;
-      uploadedAudioPlayer.classList.remove('d-none');
-    } else {
-      uploadedAudioPlayer.classList.add('d-none');
-    }
-  });
-
-  // Form submission
-  document.getElementById('speakerForm').addEventListener('submit', function () {
-    const btn = document.getElementById('submitBtn');
-    const spinner = document.getElementById('spinner');
-    const btnText = btn.querySelector('.btn-text');
-
-    btn.disabled = true;
-    spinner.classList.remove('d-none');
-    btnText.textContent = 'Processing...';
-  });
-</script>
-{% endblock %}
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            btnText.textContent = 'Processing...';
+            });
+            </script>
+            {% endblock %}
