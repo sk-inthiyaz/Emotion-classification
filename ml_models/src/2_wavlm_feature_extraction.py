@@ -65,14 +65,20 @@ class WavLMFeatureExtractor:
         self.embeddings_dir = Path(embeddings_dir)
         self.embeddings_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"Loading WavLM model: {model_name}")
+        logger.info(f"Loading model: {model_name}")
         logger.info(f"Using device: {self.device} (CPU-only mode)")
         
-        from transformers import Wav2Vec2FeatureExtractor, WavLMModel
+        from transformers import Wav2Vec2FeatureExtractor, WavLMModel, HubertModel
 
         self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-        self.model = WavLMModel.from_pretrained(model_name)
-                
+        
+        # Detect model type and load appropriate model
+        if "hubert" in model_name.lower():
+            logger.info("Detected HuBERT model")
+            self.model = HubertModel.from_pretrained(model_name)
+        else:
+            logger.info("Detected WavLM/Wav2Vec2 model")
+            self.model = WavLMModel.from_pretrained(model_name)
         
         self.model.to(self.device)
         self.model.eval()

@@ -92,8 +92,21 @@ class EmotionInferenceService:
         embedding = self.extractor.extract_from_file(str(audio_path))
         embedding = embedding.reshape(1, -1)
         
-        # Handle NaN values (replace with 0)
-        embedding = np.nan_to_num(embedding, nan=0.0, posinf=0.0, neginf=0.0)
+        # Check for NaN values and handle them carefully
+        nan_count = np.isnan(embedding).sum()
+        if nan_count > 0:
+            print(f"Warning: {nan_count} NaN values in embedding, replacing with mean")
+            # Replace NaN with column mean (better than 0)
+            col_mean = np.nanmean(embedding, axis=0)
+            embedding = np.where(np.isnan(embedding), col_mean, embedding)
+            # If still NaN (all values were NaN), use 0
+            embedding = np.nan_to_num(embedding, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Check for inf values
+        inf_count = np.isinf(embedding).sum()
+        if inf_count > 0:
+            print(f"Warning: {inf_count} inf values in embedding, clipping")
+            embedding = np.clip(embedding, -1e10, 1e10)
         
         # Scale the embedding
         embedding_scaled = self._scaler.transform(embedding)
