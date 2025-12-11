@@ -1,4 +1,4 @@
-"""
+﻿"""
 Feature Extraction (WavLM / HuBERT)
 ===================================
 
@@ -79,8 +79,8 @@ class WavLMFeatureExtractor:
             self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
             self.model = Wav2Vec2Model.from_pretrained(model_name)
         else:
-            # WavLM models use Wav2Vec2Processor
-            self.processor = Wav2Vec2Processor.from_pretrained(model_name)
+            # WavLM models use Wav2Vec2FeatureExtractor
+            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
             self.model = WavLMModel.from_pretrained(model_name)
         
         self.model.to(self.device)
@@ -388,9 +388,9 @@ if __name__ == "__main__":
             'emotion',
             batch_size=1  # Process one sample at a time for CPU
         )
-        logger.info("✓ Feature extraction complete!")
+        logger.info("Γ£ô Feature extraction complete!")
     else:
-        logger.error(f"✗ Metadata file not found: {metadata_path}")
+        logger.error(f"Γ£ù Metadata file not found: {metadata_path}")
         logger.error("Please run 1_data_preprocessing.py first")
     
     logger.info("All done!")
