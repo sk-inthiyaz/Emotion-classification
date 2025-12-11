@@ -125,10 +125,25 @@ class GenderInferenceService:
             
             # Map prediction to gender class
             # CRITICAL: 0=Male, 1=Female (DO NOT CHANGE)
-            GENDER_CLASSES = GENDER_MODEL["classes"]  # ["Male", "Female"]
-            prediction_label = GENDER_CLASSES[prediction_idx]
+            # Use encoder if available for proper decoding, otherwise use GENDER_CLASSES
+            if self._encoder is not None and hasattr(self._encoder, 'inverse_transform'):
+                # If encoder is a proper LabelEncoder object
+                try:
+                    prediction_label = self._encoder.inverse_transform([prediction_idx])[0]
+                except Exception:
+                    # Fallback to direct mapping
+                    GENDER_CLASSES = GENDER_MODEL["classes"]
+                    prediction_label = GENDER_CLASSES[int(prediction_idx) % len(GENDER_CLASSES)]
+            elif isinstance(self._encoder, dict):
+                # If encoder is stored as dict {0: "Male", 1: "Female"}
+                prediction_label = self._encoder.get(int(prediction_idx), GENDER_MODEL["classes"][int(prediction_idx) % 2])
+            else:
+                # Direct class mapping
+                GENDER_CLASSES = GENDER_MODEL["classes"]  # ["Male", "Female"]
+                prediction_label = GENDER_CLASSES[int(prediction_idx) % len(GENDER_CLASSES)]
             
             # Get probability estimates
+            GENDER_CLASSES = GENDER_MODEL["classes"]
             probabilities = get_probabilities(self._classifier, embedding, GENDER_CLASSES)
             
             return {

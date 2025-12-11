@@ -139,7 +139,18 @@ class IntentInferenceService:
             
             # Decode the prediction using label encoder
             if self._encoder is not None:
-                prediction_label = self._encoder.inverse_transform([prediction_raw])[0]
+                if isinstance(self._encoder, dict):
+                    # If encoder is stored as dict {0: "intent_name", ...}
+                    prediction_label = self._encoder.get(int(prediction_raw), str(prediction_raw))
+                elif hasattr(self._encoder, 'inverse_transform'):
+                    # If encoder is a proper LabelEncoder object
+                    try:
+                        prediction_label = self._encoder.inverse_transform([prediction_raw])[0]
+                    except Exception as e:
+                        print(f"Error decoding prediction: {e}")
+                        prediction_label = str(prediction_raw)
+                else:
+                    prediction_label = str(prediction_raw)
             else:
                 prediction_label = str(prediction_raw)
             
@@ -148,7 +159,17 @@ class IntentInferenceService:
                 class_indices = self._classifier.classes_
                 # Decode all class labels for probabilities
                 if self._encoder is not None:
-                    labels = self._encoder.inverse_transform(class_indices)
+                    if isinstance(self._encoder, dict):
+                        # Dict encoder: map indices to labels
+                        labels = [self._encoder.get(int(idx), str(idx)) for idx in class_indices]
+                    elif hasattr(self._encoder, 'inverse_transform'):
+                        # LabelEncoder object
+                        try:
+                            labels = self._encoder.inverse_transform(class_indices)
+                        except Exception:
+                            labels = [str(idx) for idx in class_indices]
+                    else:
+                        labels = [str(idx) for idx in class_indices]
                 else:
                     labels = [str(idx) for idx in class_indices]
             else:
