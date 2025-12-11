@@ -80,110 +80,247 @@
     {% if result %}
     <div class="card p-4">
       <h5 class="mb-3">Result</h5>
-      <div class="prediction-label mb-4">
-        <span class="badge bg-primary">{{ result.label }}</span>
+      {% extends 'base.html' %}
+      {% block content %}
+      <div class="row">
+        <div class="col-lg-8">
+          <h2 class="mb-3">Speaker Identification</h2>
+          <p class="text-muted">Upload or record audio to identify speakers using XLSR-53 + Classifier</p>
+
+          <!-- Recording Section -->
+          <div class="card p-4 mb-3" id="recordingCard">
+            <h5 class="mb-3"><i class="bi bi-mic"></i> Record Audio</h5>
+            <div class="d-flex flex-column gap-2">
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-danger" id="recordBtn" type="button">
+                  <i class="bi bi-mic-fill"></i> Start Recording
+                </button>
+                <button class="btn btn-secondary" id="stopBtn" type="button" disabled>
+                  <i class="bi bi-stop-fill"></i> Stop
+                </button>
+                <button class="btn btn-outline-primary" id="playRecordedBtn" type="button" disabled>
+                  <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
+                </button>
+              </div>
+
+              <!-- Audio Visualizer for Recording -->
+              <div id="recordedAudioPlayer" class="audio-player d-none">
+                <div class="audio-controls">
+                  <div class="audio-time">
+                    <span id="recordedCurrentTime">0:00</span> / <span id="recordedDuration">0:00</span>
+                  </div>
+                  <div class="audio-wave">
+                    <div class="audio-progress" id="recordedProgress"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="recordingStatus" class="text-muted small"></div>
+              <audio id="audioPlayback" class="d-none"></audio>
+              <button class="btn btn-success d-none" id="useRecordingBtn" type="button">
+                <i class="bi bi-check-circle"></i> Use This Recording
+              </button>
+            </div>
+          </div>
+
+          <!-- Upload Section -->
+          <div class="card p-4 mb-4">
+            <h5 class="mb-3"><i class="bi bi-cloud-upload"></i> Upload Audio File</h5>
+            <form action="{{ url_for('speaker_predict') }}" method="post" enctype="multipart/form-data"
+              id="speakerForm">
+              <div class="mb-3">
+                <label class="form-label">Audio File</label>
+                <input class="form-control" type="file" name="audio" id="fileInput" accept="audio/*">
+                <div class="form-text">Supported: WAV, MP3, FLAC, OGG, M4A, WebM</div>
+              </div>
+
+              <!-- Audio Preview for Uploaded File -->
+              <div id="uploadedAudioPlayer" class="audio-player d-none mb-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <button class="btn btn-outline-primary btn-sm" id="playUploadedBtn" type="button">
+                    <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
+                  </button>
+                  <div class="flex-grow-1">
+                    <div class="audio-time">
+                      <span id="uploadedCurrentTime">0:00</span> / <span id="uploadedDuration">0:00</span>
+                    </div>
+                    <div class="audio-wave">
+                      <div class="audio-progress" id="uploadedProgress"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <audio id="uploadedAudioPlayback" class="d-none"></audio>
+
+              <button class="btn btn-primary" type="submit" id="submitBtn">
+                <span class="btn-text">Identify Speaker</span>
+                <span class="spinner-border spinner-border-sm ms-2 d-none" id="spinner"></span>
+              </button>
+            </form>
+          </div>
+
+          {% if result %}
+          <div class="card p-4">
+            <h5 class="mb-3">Result</h5>
+            <div class="prediction-label mb-4">
+              <span class="badge bg-primary">{{ result.label }}</span>
+            </div>
+
+            {% if result.probabilities %}
+            <h6 class="mb-3">Probabilities</h6>
+            {% for label, prob in result.probabilities.items() %}
+            <div class="prob-item">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="fw-semibold">{{ label }}</span>
+                <span class="text-muted">{{ '%.1f' % (prob * 100) }}%</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar" style="width: {{ '%.1f' % (prob * 100) }}%;"></div>
+              </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card info-card p-3 mb-3">
+            <h6>Model Details</h6>
+            <ul class="small mb-0">
+              <li><strong>Embeddings:</strong> XLSR-53</li>
+              <li><strong>Classifier:</strong> SVM</li>
+              <li><strong>Accuracy:</strong> 98.33%</li>
+              <li><strong>Dimensions:</strong> 1024 (PCA reduced)</li>
+            </ul>
+          </div>
+
+          <div class="card tips-card p-3">
+            <h6>Tips</h6>
+            <ul class="small mb-0">
+              <li>Clear audio works best</li>
+              <li>3-30 seconds optimal</li>
+              <li>First run downloads model</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      {% if result.probabilities %}
-      <h6 class="mb-3">Probabilities</h6>
-      {% for label, prob in result.probabilities.items() %}
-      <div class="prob-item">
-        <div class="d-flex justify-content-between mb-1">
-          <span class="fw-semibold">{{ label }}</span>
-          <span class="text-muted">{{ '%.1f' % (prob * 100) }}%</span>
-        </div>
-        <div class="progress">
-          <div class="progress-bar" style="width: {{ '%.1f' % (prob * 100) }}%;"></div>
-          let mediaRecorder;
-          let audioChunks = [];
-          let recordedBlob;
+      <script>
+        // Recording functionality
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedBlob;
 
-          const recordBtn = document.getElementById('recordBtn');
-          const stopBtn = document.getElementById('stopBtn');
-          const playRecordedBtn = document.getElementById('playRecordedBtn');
-          const useRecordingBtn = document.getElementById('useRecordingBtn');
-          const audioPlayback = document.getElementById('audioPlayback');
-          const recordingStatus = document.getElementById('recordingStatus');
-          const fileInput = document.getElementById('fileInput');
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const playRecordedBtn = document.getElementById('playRecordedBtn');
+        const useRecordingBtn = document.getElementById('useRecordingBtn');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const fileInput = document.getElementById('fileInput');
 
-          // Uploaded audio elements
-          const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
-          const playUploadedBtn = document.getElementById('playUploadedBtn');
-          const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
+        // Uploaded audio elements
+        const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
+        const playUploadedBtn = document.getElementById('playUploadedBtn');
+        const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
 
-          // Audio player helper function
-          function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, progressEl) {
+        // Audio player helper function
+        function setupAudioPlayer(audioElement, playButton, currentTimeEl, durationEl, progressEl) {
           let isPlaying = false;
 
           audioElement.addEventListener('loadedmetadata', function () {
-          durationEl.textContent = formatTime(audioElement.duration);
+            durationEl.textContent = formatTime(audioElement.duration);
           });
 
           audioElement.addEventListener('timeupdate', function () {
-          currentTimeEl.textContent = formatTime(audioElement.currentTime);
-          const progress = (audioElement.currentTime / audioElement.duration) * 100;
-          progressEl.style.width = progress + '%';
+            currentTimeEl.textContent = formatTime(audioElement.currentTime);
+            const progress = (audioElement.currentTime / audioElement.duration) * 100;
+            progressEl.style.width = progress + '%';
           });
 
           audioElement.addEventListener('play', function () {
-          progressEl.classList.add('playing');
+            progressEl.classList.add('playing');
           });
 
           audioElement.addEventListener('pause', function () {
-          progressEl.classList.remove('playing');
+            progressEl.classList.remove('playing');
           });
 
           audioElement.addEventListener('ended', function () {
-          isPlaying = false;
-          playButton.querySelector('.play-text').textContent = 'Play';
-          playButton.querySelector('i').className = 'bi bi-play-fill';
-          progressEl.style.width = '0%';
-          progressEl.classList.remove('playing');
+            isPlaying = false;
+            playButton.querySelector('.play-text').textContent = 'Play';
+            playButton.querySelector('i').className = 'bi bi-play-fill';
+            progressEl.style.width = '0%';
+            progressEl.classList.remove('playing');
           });
 
           playButton.addEventListener('click', function () {
-          if (isPlaying) {
-          audioElement.pause();
-          playButton.querySelector('.play-text').textContent = 'Play';
-          playButton.querySelector('i').className = 'bi bi-play-fill';
-          } else {
-          audioElement.play();
-          playButton.querySelector('.play-text').textContent = 'Pause';
-          playButton.querySelector('i').className = 'bi bi-pause-fill';
-          }
-          isPlaying = !isPlaying;
+            if (isPlaying) {
+              audioElement.pause();
+              playButton.querySelector('.play-text').textContent = 'Play';
+              playButton.querySelector('i').className = 'bi bi-play-fill';
+            } else {
+              audioElement.play();
+              playButton.querySelector('.play-text').textContent = 'Pause';
+              playButton.querySelector('i').className = 'bi bi-pause-fill';
+            }
+            isPlaying = !isPlaying;
           });
-          }
+        }
 
-          function formatTime(seconds) {
+        function formatTime(seconds) {
           if (isNaN(seconds)) return '0:00';
           const mins = Math.floor(seconds / 60);
           const secs = Math.floor(seconds % 60);
-          return mins + ':' + (secs < 10 ? '0' : '' ) + secs; } // Setup recorded audio player const
-            recordedAudioPlayer=document.getElementById('recordedAudioPlayer'); setupAudioPlayer( audioPlayback,
-            playRecordedBtn, document.getElementById('recordedCurrentTime'),
-            document.getElementById('recordedDuration'), document.getElementById('recordedProgress') ); // Setup
-            uploaded audio player setupAudioPlayer( uploadedAudioPlayback, playUploadedBtn,
-            document.getElementById('uploadedCurrentTime'), document.getElementById('uploadedDuration'),
-            document.getElementById('uploadedProgress') ); recordBtn.addEventListener('click', async function () { try {
-            const stream=await navigator.mediaDevices.getUserMedia({ audio: true }); // Use audio/webm;codecs=opus for
-            better browser compatibility const options={ mimeType: 'audio/webm' }; mediaRecorder=new
-            MediaRecorder(stream, options); audioChunks=[]; mediaRecorder.ondataavailable=(event)=> {
-            audioChunks.push(event.data);
+          return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+
+        // Setup recorded audio player
+        const recordedAudioPlayer = document.getElementById('recordedAudioPlayer');
+        setupAudioPlayer(
+          audioPlayback,
+          playRecordedBtn,
+          document.getElementById('recordedCurrentTime'),
+          document.getElementById('recordedDuration'),
+          document.getElementById('recordedProgress')
+        );
+
+        // Setup uploaded audio player
+        setupAudioPlayer(
+          uploadedAudioPlayback,
+          playUploadedBtn,
+          document.getElementById('uploadedCurrentTime'),
+          document.getElementById('uploadedDuration'),
+          document.getElementById('uploadedProgress')
+        );
+
+        recordBtn.addEventListener('click', async function () {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Use audio/webm;codecs=opus for better browser compatibility
+            const options = { mimeType: 'audio/webm' };
+            mediaRecorder = new MediaRecorder(stream, options);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+              audioChunks.push(event.data);
             };
 
             mediaRecorder.onstop = () => {
-            // Create WebM blob
-            recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const audioUrl = URL.createObjectURL(recordedBlob);
-            audioPlayback.src = audioUrl;
-            recordedAudioPlayer.classList.remove('d-none');
-            playRecordedBtn.disabled = false;
-            useRecordingBtn.classList.remove('d-none');
-            recordingStatus.textContent = 'Recording saved. Click Play to listen or Use This Recording to analyze.';
+              // Create WebM blob
+              recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+              const audioUrl = URL.createObjectURL(recordedBlob);
+              audioPlayback.src = audioUrl;
+              recordedAudioPlayer.classList.remove('d-none');
+              playRecordedBtn.disabled = false;
+              useRecordingBtn.classList.remove('d-none');
+              recordingStatus.textContent = 'Recording saved. Click Play to listen or Use This Recording to analyze.';
 
-            // Stop all tracks
-            stream.getTracks().forEach(track => track.stop());
+              // Stop all tracks
+              stream.getTracks().forEach(track => track.stop());
             };
 
             mediaRecorder.start();
@@ -194,23 +331,23 @@
             recordedAudioPlayer.classList.add('d-none');
             recordingStatus.textContent = 'Recording... Click Stop when done.';
             recordingStatus.classList.add('text-danger');
-            } catch (err) {
+          } catch (err) {
             recordingStatus.textContent = 'Error: ' + err.message;
             recordingStatus.classList.add('text-danger');
-            }
-            });
+          }
+        });
 
-            stopBtn.addEventListener('click', function () {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        stopBtn.addEventListener('click', function () {
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
             recordBtn.disabled = false;
             stopBtn.disabled = true;
             recordingStatus.classList.remove('text-danger');
-            }
-            });
+          }
+        });
 
-            useRecordingBtn.addEventListener('click', function () {
-            if (recordedBlob) {
+        useRecordingBtn.addEventListener('click', function () {
+          if (recordedBlob) {
             // Create a File object with webm extension
             const file = new File([recordedBlob], 'recording.webm', { type: 'audio/webm' });
 
@@ -223,30 +360,30 @@
             document.getElementById('speakerForm').scrollIntoView({ behavior: 'smooth' });
             recordingStatus.textContent = 'Recording loaded. Click "Identify Speaker" below to analyze.';
             recordingStatus.classList.add('text-success');
-            }
-            });
+          }
+        });
 
-            // File input change handler
-            fileInput.addEventListener('change', function (e) {
-            if (e.target.files.length > 0) {
+        // File input change handler
+        fileInput.addEventListener('change', function (e) {
+          if (e.target.files.length > 0) {
             const file = e.target.files[0];
             const fileUrl = URL.createObjectURL(file);
             uploadedAudioPlayback.src = fileUrl;
             uploadedAudioPlayer.classList.remove('d-none');
-            } else {
+          } else {
             uploadedAudioPlayer.classList.add('d-none');
-            }
-            });
+          }
+        });
 
-            // Form submission
-            document.getElementById('speakerForm').addEventListener('submit', function () {
-            const btn = document.getElementById('submitBtn');
-            const spinner = document.getElementById('spinner');
-            const btnText = btn.querySelector('.btn-text');
+        // Form submission
+        document.getElementById('speakerForm').addEventListener('submit', function () {
+          const btn = document.getElementById('submitBtn');
+          const spinner = document.getElementById('spinner');
+          const btnText = btn.querySelector('.btn-text');
 
-            btn.disabled = true;
-            spinner.classList.remove('d-none');
-            btnText.textContent = 'Processing...';
-            });
-            </script>
-            {% endblock %}
+          btn.disabled = true;
+          spinner.classList.remove('d-none');
+          btnText.textContent = 'Processing...';
+        });
+      </script>
+      {% endblock %}
