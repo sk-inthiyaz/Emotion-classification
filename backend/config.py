@@ -92,9 +92,9 @@ INTENT_MODEL = {
     "feature_extractor": "microsoft/wavlm-base-plus",
     "classifier": str(MODELS_DIR / "intent_classifier.pkl"),
     "scaler": str(MODELS_DIR / "intent_scaler.pkl"),
-    "pca": str(MODELS_DIR / "intent_pca.pkl"),
+    "pca": str(MODELS_DIR / "intent_pca.pkl"),  # Optional - will be skipped if not found
     "label_encoder": str(MODELS_DIR / "intent_label_encoder.pkl"),
-    "description": "WavLM-base-plus + Intent Classification (SLURP dataset)"
+    "description": "WavLM-base-plus + SVM Classifier (SLURP dataset, by Sahasra)"
 }
 
 # Speaker Model Configuration

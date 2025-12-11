@@ -67,8 +67,6 @@ class IntentInferenceService:
             raise FileNotFoundError(f"Intent model not found: {self._model_path}")
         if not self._scaler_path.exists():
             raise FileNotFoundError(f"Intent scaler not found: {self._scaler_path}")
-        if not self._pca_path.exists():
-            raise FileNotFoundError(f"Intent PCA not found: {self._pca_path}")
         if not self._encoder_path.exists():
             raise FileNotFoundError(f"Intent encoder not found: {self._encoder_path}")
         
@@ -80,8 +78,14 @@ class IntentInferenceService:
         # Load model artifacts
         self._classifier = joblib.load(self._model_path)
         self._scaler = joblib.load(self._scaler_path)
-        self._pca = joblib.load(self._pca_path)
         self._encoder = joblib.load(self._encoder_path)
+        
+        # Load PCA if available (optional for intent classification)
+        if self._pca_path.exists():
+            self._pca = joblib.load(self._pca_path)
+        else:
+            print(f"Warning: Intent PCA not found at {self._pca_path} - skipping PCA transformation")
+            self._pca = None
     
     def predict_intent(self, audio_path: Path) -> Dict[str, object]:
         """
@@ -124,16 +128,19 @@ class IntentInferenceService:
             # Apply feature scaling
             embedding_scaled = self._scaler.transform(embedding)
             
-            # Apply PCA for dimensionality reduction
-            embedding_pca = self._pca.transform(embedding_scaled)
+            # Apply PCA for dimensionality reduction (if available)
+            if self._pca is not None:
+                embedding_final = self._pca.transform(embedding_scaled)
+            else:
+                embedding_final = embedding_scaled
             
             # Predict intent
-            prediction_raw = self._classifier.predict(embedding_pca)[0]
+            prediction_raw = self._classifier.predict(embedding_final)[0]
             prediction_label = str(prediction_raw)
             
             # Get probability estimates
             labels = self._classifier.classes_ if hasattr(self._classifier, "classes_") else [prediction_label]
-            probabilities = get_probabilities(self._classifier, embedding_pca, labels)
+            probabilities = get_probabilities(self._classifier, embedding_final, labels)
             
             return {
                 "label": prediction_label,
