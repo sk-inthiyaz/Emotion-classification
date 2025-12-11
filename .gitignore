@@ -28,15 +28,6 @@ pip-delete-this-directory.txt
 # Flask app uploads
 app/uploads/
 
-# Model artifacts & large binaries (use Git LFS if needed)
-models/
-embeddings/
-*.pt
-*.pth
-*.pkl
-*.joblib
-*.safetensors
-
 # Data (raw/processed) – exclude local datasets
 data/
 !data/processed/
@@ -59,3 +50,7 @@ build/
 
 # Ignore app static build artifacts generated locally
 app/static/*.map
+
+# SSL Certificates
+*.pem
+tempCodeRunnerFile.py
