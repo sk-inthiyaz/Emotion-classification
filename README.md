@@ -1,6 +1,6 @@
-# Speech Embeddings using WavLM-base
+# Speech AI Suite
 
-A research-based project implementing speech embedding extraction and evaluation using Microsoft's WavLM-base model, inspired by the IEEE/ACM 2024 paper *"From Raw Speech to Fixed Representations: A Comprehensive Evaluation of Speech Embedding Techniques."*
+A production-ready, multi-task speech analysis suite (Emotion, Gender, Intent, Speaker) built on WavLM/HuBERT embeddings and lightweight classifiers. The project is inspired by the IEEE/ACM 2024 paper *"From Raw Speech to Fixed Representations: A Comprehensive Evaluation of Speech Embedding Techniques."*
 
 ## 🎯 Project Overview
 
@@ -14,7 +14,7 @@ This project focuses on **emotion recognition** from speech by extracting fixed-
 ## 📁 Project Structure
 
 ```
-SpeechEmbeddings-WavLM/
+Speech-AI-Suite/
 ├── data/                           # Dataset storage
 │   ├── IEMOCAP/                   # Emotion recognition dataset
 │   ├── CREMA-D/                   # Emotion recognition dataset
@@ -47,8 +47,8 @@ SpeechEmbeddings-WavLM/
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/srinivasCharan23/-SpeechEmbeddings-WavLM.git
-   cd SpeechEmbeddings-WavLM
+   git clone https://github.com/sk-inthiyaz/Speech-AI-Suite.git
+   cd Speech-AI-Suite
    ```
 
 2. **Install dependencies:**

@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Header -->
+      <div class="text-center mb-5 about-header">
+        <h1 class="display-4 fw-bold mb-3">
+          <i class="bi bi-soundwave me-3"></i>Speech AI Suite
+        </h1>
+        <p class="lead" style="color: #1e293b;">
+          Professional multi-task speech analysis platform powered by state-of-the-art deep learning models
+        </p>
+      </div>
+
+      <!-- Overview Card -->
+      <div class="card mb-4 about-card">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4"><i class="bi bi-info-circle me-2"></i>Project Overview</h3>
+          <p style="font-size: 1.05rem; line-height: 1.8;">
+            <strong>Speech AI Suite</strong> is an advanced audio classification system that leverages cutting-edge 
+            self-supervised learning models to perform four critical speech analysis tasks: emotion recognition, 
+            gender classification, intent detection, and speaker identification. Built with a clean, modular 
+            architecture following modern software engineering principles.
+          </p>
+        </div>
+      </div>
+
+      <!-- Services Grid -->
+      <div class="row g-4 mb-4">
+        <!-- Emotion Card -->
+        <div class="col-md-6">
+          <div class="card h-100 service-card">
+            <div class="card-body">
+              <h4 class="card-title">
+                <i class="bi bi-emoji-smile text-warning me-2"></i>Emotion Classification
+              </h4>
+              <hr style="border-color: rgba(99,102,241,0.2);">
+              <p><strong>Model:</strong> HuBERT-large + SVM Classifier</p>
+              <p><strong>Accuracy:</strong> 79.14% (5-fold cross-validation)</p>
+              <p><strong>Dataset:</strong> CREMA-D</p>
+              <p><strong>Classes:</strong> Happy, Sad, Angry, Neutral, Fear, Disgust</p>
+              <p class="mb-0"><strong>Architecture:</strong> facebook/hubert-large-ll60k (1024-dim embeddings) with SVM classifier</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gender Card -->
+        <div class="col-md-6">
+          <div class="card h-100 service-card">
+            <div class="card-body">
+              <h4 class="card-title">
+                <i class="bi bi-person text-info me-2"></i>Gender Classification
+              </h4>
+              <hr style="border-color: rgba(99,102,241,0.2);">
+              <p><strong>Model:</strong> WavLM-base-plus + Logistic Regression</p>
+              <p><strong>Feature Extraction:</strong> microsoft/wavlm-base-plus</p>
+              <p><strong>Classes:</strong> Male, Female</p>
+              <p><strong>Dimensionality Reduction:</strong> PCA (200 components)</p>
+              <p class="mb-0"><strong>Use Case:</strong> Speaker demographics analysis for personalized services</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Intent Card -->
+        <div class="col-md-6">
+          <div class="card h-100 service-card">
+            <div class="card-body">
+              <h4 class="card-title">
+                <i class="bi bi-chat-dots text-success me-2"></i>Intent Classification
+              </h4>
+              <hr style="border-color: rgba(99,102,241,0.2);">
+              <p><strong>Model:</strong> WavLM-base-plus + SVM Classifier</p>
+              <p><strong>Dataset:</strong> SLURP (Spoken Language Understanding)</p>
+              <p><strong>Classes:</strong> 20 intent categories (commands, queries, etc.)</p>
+              <p><strong>Developer:</strong> Sahasra Ganji</p>
+              <p class="mb-0"><strong>Use Case:</strong> Voice assistant command understanding for smart devices</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Speaker Card -->
+        <div class="col-md-6">
+          <div class="card h-100 service-card">
+            <div class="card-body">
+              <h4 class="card-title">
+                <i class="bi bi-mic text-danger me-2"></i>Speaker Identification
+              </h4>
+              <hr style="border-color: rgba(99,102,241,0.2);">
+              <p><strong>Model:</strong> XLSR-53 + Custom Pooling</p>
+              <p><strong>Feature Extraction:</strong> facebook/wav2vec2-large-xlsr-53</p>
+              <p><strong>Pooling Strategy:</strong> Mean + Std concatenation (2048-dim)</p>
+              <p><strong>Dimensionality Reduction:</strong> PCA (200 components)</p>
+              <p class="mb-0"><strong>Use Case:</strong> Biometric authentication and speaker diarization</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Architecture -->
+      <div class="card mb-4 about-card">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4"><i class="bi bi-diagram-3 me-2"></i>Technical Architecture</h3>
+          <div class="row">
+            <div class="col-md-6">
+              <h5 class="text-warning">Backend Stack</h5>
+              <ul style="line-height: 2;">
+                <li><strong>Framework:</strong> Flask (Python Web Framework)</li>
+                <li><strong>ML Libraries:</strong> PyTorch, Transformers, scikit-learn</li>
+                <li><strong>Audio Processing:</strong> librosa, soundfile, pydub</li>
+                <li><strong>Model Storage:</strong> Git LFS (Large File Storage)</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h5 class="text-info">Frontend Stack</h5>
+              <ul style="line-height: 2;">
+                <li><strong>UI Framework:</strong> Bootstrap 5</li>
+                <li><strong>Design:</strong> Glassmorphism with gradient backgrounds</li>
+                <li><strong>Icons:</strong> Bootstrap Icons</li>
+                <li><strong>Audio Visualization:</strong> Custom CSS animations</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Structure -->
+      <div class="card mb-4 about-card">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4"><i class="bi bi-folder me-2"></i>Project Structure</h3>
+          <pre style="background: #1e293b; padding: 1.5rem; border-radius: 8px; color: #a5f3fc; overflow-x: auto;">
+<code>Emotion-classification/
+├── backend/                    # Flask application & services
+│   ├── app/                   # Web application
+│   │   ├── app.py            # Main Flask app (11 routes)
+│   │   ├── templates/        # HTML templates (Jinja2)
+│   │   └── static/           # CSS, JavaScript, Bootstrap
+│   ├── services/             # Inference services (modular)
+│   │   ├── emotion.py        # Emotion classification
+│   │   ├── gender.py         # Gender classification
+│   │   ├── intent.py         # Intent detection
+│   │   ├── speaker.py        # Speaker identification
+│   │   └── utils/            # Shared utilities
+│   └── config.py             # Centralized configuration
+│
+├── ml_models/                 # ML training & artifacts
+│   ├── models/               # Pre-trained models (15 .pkl files)
+│   ├── src/                  # Feature extraction scripts
+│   ├── data/                 # Training datasets
+│   ├── scripts/              # Training scripts
+│   └── results/              # Evaluation metrics
+│
+└── docs/                      # Documentation
+    └── *.md                  # Comprehensive guides</code></pre>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="card mb-4 about-card">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4"><i class="bi bi-star me-2"></i>Key Features</h3>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="d-flex align-items-start feature-item">
+                <i class="bi bi-check-circle-fill text-success me-3 mt-1" style="font-size: 1.5rem;"></i>
+                <div>
+                  <h5>Real-time Audio Processing</h5>
+                  <p class="mb-0">Record audio directly from microphone or upload files</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-start feature-item">
+                <i class="bi bi-check-circle-fill text-success me-3 mt-1" style="font-size: 1.5rem;"></i>
+                <div>
+                  <h5>Multiple Audio Formats</h5>
+                  <p class="mb-0">Supports WAV, MP3, FLAC, OGG, M4A, WebM</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-start feature-item">
+                <i class="bi bi-check-circle-fill text-success me-3 mt-1" style="font-size: 1.5rem;"></i>
+                <div>
+                  <h5>State-of-the-art Models</h5>
+                  <p class="mb-0">HuBERT, WavLM, XLSR-53 self-supervised models</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-start feature-item">
+                <i class="bi bi-check-circle-fill text-success me-3 mt-1" style="font-size: 1.5rem;"></i>
+                <div>
+                  <h5>Modular Architecture</h5>
+                  <p class="mb-0">Clean separation of concerns, easy to extend</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-start feature-item">
+                <i class="bi bi-check-circle-fill text-success me-3 mt-1" style="font-size: 1.5rem;"></i>
+                <div>
+                  <h5>CPU Optimized</h5>
+                  <p class="mb-0">Efficient inference without requiring GPU</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-start feature-item">
+                <i class="bi bi-check-circle-fill text-success me-3 mt-1" style="font-size: 1.5rem;"></i>
+                <div>
+                  <h5>Production Ready</h5>
+                  <p class="mb-0">Git LFS, proper error handling, logging</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team -->
+      <div class="card mb-4 about-card">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4"><i class="bi bi-people me-2"></i>Development Team</h3>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="text-center team-member">
+                <div class="mb-3" style="font-size: 3rem;">
+                  <i class="bi bi-person-circle" style="color: #6366f1;"></i>
+                </div>
+                <h5>Sk Inthiyaz</h5>
+                <p class="text-muted mb-0"><strong>ML Engineer & Project Lead</strong></p>
+                <p class="small">Emotion Classification · Architecture · Backend & Frontend Integration</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="text-center team-member">
+                <div class="mb-3" style="font-size: 3rem;">
+                  <i class="bi bi-person-circle" style="color: #8b5cf6;"></i>
+                </div>
+                <h5>Romith Singh</h5>
+                <p class="text-muted mb-0"><strong>ML Engineer & Team Lead</strong></p>
+                <p class="small">Speaker Identification · Model Optimization</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="text-center team-member">
+                <div class="mb-3" style="font-size: 3rem;">
+                  <i class="bi bi-person-circle" style="color: #10b981;"></i>
+                </div>
+                <h5>Rohin Kumar</h5>
+                <p class="text-muted mb-0"><strong>ML Engineer & Data Engineer</strong></p>
+                <p class="small">Gender Identification · Feature Engineering</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="text-center team-member">
+                <div class="mb-3" style="font-size: 3rem;">
+                  <i class="bi bi-person-circle" style="color: #f59e0b;"></i>
+                </div>
+                <h5>Sahasra Ganji</h5>
+                <p class="text-muted mb-0"><strong>ML Engineer & Data Engineer</strong></p>
+                <p class="small">Intent Classification · Dataset Preparation</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="text-center team-member">
+                <div class="mb-3" style="font-size: 3rem;">
+                  <i class="bi bi-person-circle" style="color: #ec4899;"></i>
+                </div>
+                <h5>Rashmitha</h5>
+                <p class="text-muted mb-0"><strong>ML Engineer & Research Engineer</strong></p>
+                <p class="small">Bug Resolution · Documentation · Research Support</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Research -->
+      <div class="card mb-5 about-card">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4"><i class="bi bi-book me-2"></i>Research Foundation</h3>
+          <p style="font-size: 1.05rem;">
+            This project is based on cutting-edge research in speech representation learning:
+          </p>
+          <ul style="line-height: 1.8;">
+            <li><strong>HuBERT:</strong> Hidden-Unit BERT for Self-Supervised Speech Representation Learning (Meta AI, 2021)</li>
+            <li><strong>WavLM:</strong> Large-Scale Self-Supervised Pre-Training for Full Stack Speech Processing (Microsoft, 2021)</li>
+            <li><strong>XLSR-53:</strong> Unsupervised Cross-lingual Representation Learning for Speech Recognition (Meta AI, 2020)</li>
+          </ul>
+          <div class="alert alert-info mt-3" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #1e293b;">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Reference:</strong> "From Raw Speech to Fixed Representations: A Comprehensive Evaluation of Speech Embedding Techniques" - IEEE/ACM 2024
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="text-center mb-5">
+        <p style="color: #475569;">
+          <i class="bi bi-github me-2"></i>
+          <a href="https://github.com/sk-inthiyaz/Speech-AI-Suite" target="_blank" style="color: #6366f1; text-decoration: none; font-weight: 600;">
+            View on GitHub
+          </a>
+        </p>
+        <p class="small" style="color: #64748b;">
+          © 2025 Speech AI Suite · Powered by G-736 Team
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

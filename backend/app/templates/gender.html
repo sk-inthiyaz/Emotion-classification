@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <h2 class="mb-3">Gender Identification</h2>
+    <p class="text-muted">Upload or record audio to identify speaker gender using WavLM-base-plus + Logistic Regression</p>
+
+    <!-- Recording Section -->
+    <div class="card p-4 mb-3" id="recordingCard">
+      <h5 class="mb-3"><i class="bi bi-mic"></i> Record Audio</h5>
+      <div class="d-flex flex-column gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-danger" id="recordBtn" type="button">
+            <i class="bi bi-mic-fill"></i> Start Recording
+          </button>
+          <button class="btn btn-secondary" id="stopBtn" type="button" disabled>
+            <i class="bi bi-stop-fill"></i> Stop
+          </button>
+          <button class="btn btn-outline-primary" id="playRecordedBtn" type="button" disabled>
+            <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
+          </button>
+        </div>
+
+        <!-- Audio Visualizer for Recording -->
+        <div id="recordedAudioPlayer" class="audio-player d-none">
+          <div class="audio-controls">
+            <div class="audio-time">
+              <span id="recordedCurrentTime">0:00</span> / <span id="recordedDuration">0:00</span>
+            </div>
+            <div class="audio-wave">
+              <div class="audio-progress" id="recordedProgress"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="recordingStatus" class="text-muted small"></div>
+        <audio id="audioPlayback" class="d-none"></audio>
+        <button class="btn btn-success d-none" id="useRecordingBtn" type="button">
+          <i class="bi bi-check-circle"></i> Use This Recording
+        </button>
+      </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3"><i class="bi bi-cloud-upload"></i> Upload Audio File</h5>
+      <form action="{{ url_for('gender_predict') }}" method="post" enctype="multipart/form-data" id="genderForm">
+        <div class="mb-3">
+          <label class="form-label">Audio File</label>
+          <input class="form-control" type="file" name="audio" id="fileInput" accept="audio/*">
+          <div class="form-text">Supported: WAV, MP3, FLAC, OGG, M4A, WebM</div>
+        </div>
+
+        <!-- Audio Preview for Uploaded File -->
+        <div id="uploadedAudioPlayer" class="audio-player d-none mb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <button class="btn btn-outline-primary btn-sm" id="playUploadedBtn" type="button">
+              <i class="bi bi-play-fill"></i> <span class="play-text">Play</span>
+            </button>
+            <div class="flex-grow-1">
+              <div class="audio-time">
+                <span id="uploadedCurrentTime">0:00</span> / <span id="uploadedDuration">0:00</span>
+              </div>
+              <div class="audio-wave">
+                <div class="audio-progress" id="uploadedProgress"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <audio id="uploadedAudioPlayback" class="d-none"></audio>
+
+        <button class="btn btn-primary" type="submit" id="submitBtn">
+          <span class="btn-text">Identify Gender</span>
+          <span class="spinner-border spinner-border-sm ms-2 d-none" id="spinner"></span>
+        </button>
+      </form>
+    </div>
+
+    {% if result %}
+    <div class="card p-4">
+      <h5 class="mb-3">Result</h5>
+      <div class="prediction-label mb-4">
+        <span class="badge bg-primary">{{ result.label }}</span>
+      </div>
+
+      {% if result.probabilities %}
+      <h6 class="mb-3">Probabilities</h6>
+      {% for label, prob in result.probabilities.items() %}
+      <div class="prob-item">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="fw-semibold">{{ label }}</span>
+          <span class="text-muted">{{ '%.1f' % (prob * 100) }}%</span>
+        </div>
+        <div class="progress">
+          <div class="progress-bar" style="width: {{ '%.1f' % (prob * 100) }}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right Sidebar (Model Info) -->
+  <div class="col-lg-4">
+    <div class="card p-4 mb-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>Model Information</h6>
+      <ul class="list-unstyled mb-0 small lh-lg">
+        <li><strong>Model:</strong> WavLM-base-plus</li>
+        <li><strong>Classifier:</strong> Logistic Regression</li>
+        <li><strong>Dimensions:</strong> 768 → 200 (PCA)</li>
+        <li><strong>Classes:</strong> 2 (Male, Female)</li>
+        <li><strong>Status:</strong> <span class="badge bg-success">Active</span></li>
+      </ul>
+    </div>
+
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb me-2"></i>Tips</h6>
+      <ul class="list-unstyled small lh-lg mb-0">
+        <li>✓ Clear speech works best</li>
+        <li>✓ Minimum 2-3 seconds recommended</li>
+        <li>✓ Low background noise improves accuracy</li>
+        <li>✓ Natural speaking tone works well</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const recordBtn = document.getElementById('recordBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const playRecordedBtn = document.getElementById('playRecordedBtn');
+    const playUploadedBtn = document.getElementById('playUploadedBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const fileInput = document.getElementById('fileInput');
+    const useRecordingBtn = document.getElementById('useRecordingBtn');
+    const audioPlayback = document.getElementById('audioPlayback');
+    const uploadedAudioPlayback = document.getElementById('uploadedAudioPlayback');
+    const recordedAudioPlayer = document.getElementById('recordedAudioPlayer');
+    const uploadedAudioPlayer = document.getElementById('uploadedAudioPlayer');
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordedBlob;
+
+    // Audio visualization setup
+    function setupAudioVisualization(audio, progressBar) {
+      audio.addEventListener('timeupdate', () => {
+        if (audio.duration) {
+          const percent = (audio.currentTime / audio.duration) * 100;
+          progressBar.style.width = percent + '%';
+        }
+      });
+    }
+
+    if (audioPlayback) {
+      setupAudioVisualization(audioPlayback, document.getElementById('recordedProgress'));
+    }
+    if (uploadedAudioPlayback) {
+      setupAudioVisualization(uploadedAudioPlayback, document.getElementById('uploadedProgress'));
+    }
+
+    // File input change
+    fileInput.addEventListener('change', function (e) {
+      if (this.files && this.files[0]) {
+        const url = URL.createObjectURL(this.files[0]);
+        uploadedAudioPlayback.src = url;
+        uploadedAudioPlayer.classList.remove('d-none');
+        recordingStatus.textContent = 'File selected. Preview before identifying.';
+      }
+    });
+
+    // Recording logic
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      recordBtn.addEventListener('click', async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const options = { mimeType: 'audio/webm' };
+          mediaRecorder = new MediaRecorder(stream, options);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = () => {
+            recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            audioPlayback.src = URL.createObjectURL(recordedBlob);
+            recordedAudioPlayer.classList.remove('d-none');
+            playRecordedBtn.disabled = false;
+            useRecordingBtn.classList.remove('d-none');
+            recordingStatus.textContent = 'Recording saved!';
+
+            const file = new File([recordedBlob], 'mic_recording.webm', { type: 'audio/webm' });
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+          };
+
+          mediaRecorder.start();
+          recordBtn.disabled = true;
+          stopBtn.disabled = false;
+          recordingStatus.innerHTML = '<i class="bi bi-record-circle text-danger me-2"></i><strong>Recording...</strong>';
+        } catch (err) {
+          recordingStatus.innerHTML = '<span class="text-danger">Microphone error: ' + err.message + '</span>';
+        }
+      });
+
+      stopBtn.addEventListener('click', () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+          recordBtn.disabled = false;
+          stopBtn.disabled = true;
+        }
+      });
+    }
+
+    // Play buttons
+    playRecordedBtn.addEventListener('click', () => {
+      if (audioPlayback.paused) {
+        audioPlayback.play();
+        playRecordedBtn.querySelector('.play-text').textContent = 'Pause';
+      } else {
+        audioPlayback.pause();
+        playRecordedBtn.querySelector('.play-text').textContent = 'Play';
+      }
+    });
+
+    playUploadedBtn.addEventListener('click', () => {
+      if (uploadedAudioPlayback.paused) {
+        uploadedAudioPlayback.play();
+        playUploadedBtn.querySelector('.play-text').textContent = 'Pause';
+      } else {
+        uploadedAudioPlayback.pause();
+        playUploadedBtn.querySelector('.play-text').textContent = 'Play';
+      }
+    });
+  });
+</script>
+{% endblock %}
