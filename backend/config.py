@@ -1,6 +1,6 @@
 """
 Configuration Module - Backend
-Centralized settings for the Emotion Classification Flask application.
+Centralized settings for the Speech AI Suite Flask application.
 Contains paths (pointing to new clean folder structure), model configurations, 
 and application constants.
 

@@ -1,11 +1,11 @@
 """
 Flask Web Application for Audio Classification
-Emotion Classification System with support for Emotion, Gender, Intent, and Speaker identification.
+Speech AI Suite with support for Emotion, Gender, Intent, and Speaker identification.
 
 Project Structure (CLEAN - MERN-LIKE):
 ├── backend/                          # This directory
 │   ├── app/                          # Flask application
-│   │   ├── app.py                   # Main file (this)
+│   │   ├── app.py                    # Main file (this)
 │   │   ├── templates/               # HTML templates
 │   │   ├── static/                  # CSS, JavaScript
 │   │   └── uploads/                 # Temporary file storage

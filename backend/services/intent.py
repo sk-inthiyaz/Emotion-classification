@@ -30,6 +30,10 @@ from services.utils.audio import (
     l2_normalize
 )
 
+# Confidence threshold to flag unknown/low-confidence intents
+INTENT_UNKNOWN_THRESHOLD = 0.35
+TOP_K_PREDICTIONS = 3
+
 
 class IntentInferenceService:
     """
@@ -134,53 +138,73 @@ class IntentInferenceService:
             else:
                 embedding_final = embedding_scaled
             
-            # Predict intent
+            # Predict intent class (raw value from classifier)
             prediction_raw = self._classifier.predict(embedding_final)[0]
-            
-            # Decode the prediction using label encoder
-            if self._encoder is not None:
-                if isinstance(self._encoder, dict):
-                    # If encoder is stored as dict {0: "intent_name", ...}
-                    prediction_label = self._encoder.get(int(prediction_raw), str(prediction_raw))
-                elif hasattr(self._encoder, 'inverse_transform'):
-                    # If encoder is a proper LabelEncoder object
-                    try:
-                        prediction_label = self._encoder.inverse_transform([prediction_raw])[0]
-                    except Exception as e:
-                        print(f"Error decoding prediction: {e}")
-                        prediction_label = str(prediction_raw)
-                else:
+
+            # Resolve labels and decode prediction deterministically
+            classifier_classes = getattr(self._classifier, "classes_", None)
+            labels = None
+            prediction_label = None
+
+            # Preferred path: encoder with classes_ (scikit LabelEncoder)
+            if self._encoder is not None and hasattr(self._encoder, "classes_"):
+                labels = list(self._encoder.classes_)
+                try:
+                    prediction_label = self._encoder.inverse_transform([prediction_raw])[0]
+                except Exception as e:
+                    print(f"Error decoding with encoder.inverse_transform: {e}")
                     prediction_label = str(prediction_raw)
-            else:
+
+            # Fallback: classifier classes are strings (trained on string labels directly)
+            elif classifier_classes is not None and all(isinstance(c, str) for c in classifier_classes):
+                labels = [str(c) for c in classifier_classes]
                 prediction_label = str(prediction_raw)
-            
-            # Get probability estimates and decode class labels
-            if hasattr(self._classifier, "classes_"):
-                class_indices = self._classifier.classes_
-                # Decode all class labels for probabilities
-                if self._encoder is not None:
-                    if isinstance(self._encoder, dict):
-                        # Dict encoder: map indices to labels
-                        labels = [self._encoder.get(int(idx), str(idx)) for idx in class_indices]
-                    elif hasattr(self._encoder, 'inverse_transform'):
-                        # LabelEncoder object
-                        try:
-                            labels = self._encoder.inverse_transform(class_indices)
-                        except Exception:
-                            labels = [str(idx) for idx in class_indices]
-                    else:
-                        labels = [str(idx) for idx in class_indices]
+
+            # Fallback: encoder stored as dict (handle both index->label and label->index)
+            elif isinstance(self._encoder, dict):
+                encoder_dict = self._encoder
+                # Detect orientation: values are ints means encoder is label->index
+                if all(isinstance(v, (int, np.integer)) for v in encoder_dict.values()):
+                    index_to_label = {int(v): str(k) for k, v in encoder_dict.items()}
+                else:  # assume keys are indices
+                    index_to_label = {int(k): str(v) for k, v in encoder_dict.items()}
+
+                if classifier_classes is not None:
+                    labels = [index_to_label.get(int(idx), str(idx)) for idx in classifier_classes]
                 else:
-                    labels = [str(idx) for idx in class_indices]
+                    labels = list(index_to_label.values())
+
+                prediction_label = index_to_label.get(int(prediction_raw), str(prediction_raw))
+
+            # Last resort: use classifier classes as strings or raw prediction
+            elif classifier_classes is not None:
+                labels = [str(c) for c in classifier_classes]
+                prediction_label = str(prediction_raw)
             else:
-                labels = [prediction_label]
-            
-            # Get probabilities with decoded labels
-            probabilities = get_probabilities(self._classifier, embedding_final, labels)
-            
+                labels = [str(prediction_raw)]
+                prediction_label = str(prediction_raw)
+
+            # Build probability distribution aligned with resolved labels
+            if hasattr(self._classifier, "predict_proba"):
+                raw_probs = self._classifier.predict_proba(embedding_final)[0]
+                if labels is not None and len(labels) == len(raw_probs):
+                    probabilities = {str(lbl): float(p) for lbl, p in zip(labels, raw_probs)}
+                else:
+                    probabilities = {str(lbl): float(1.0 / len(labels)) for lbl in labels}
+            else:
+                probabilities = get_probabilities(self._classifier, embedding_final, labels)
+
+            # Unknown/low-confidence handling
+            sorted_probs = sorted(probabilities.items(), key=lambda kv: kv[1], reverse=True)
+            top_label, top_conf = sorted_probs[0]
+            if top_conf < INTENT_UNKNOWN_THRESHOLD:
+                prediction_label = "unknown"
+
             return {
                 "label": prediction_label,
-                "probabilities": probabilities
+                "probabilities": probabilities,
+                "top_predictions": sorted_probs[:TOP_K_PREDICTIONS],
+                "available_labels": labels,
             }
         
         except Exception as e:

@@ -317,7 +317,7 @@ Web UI (HTML/CSS/JS)
 ## 📁 Project Structure
 
 ```
-Emotion-classification/
+Speech-AI-Suite/
 ├── backend/                           # Flask web application
 │   ├── app/
 │   │   ├── app.py                    # Main Flask application (11 routes)
@@ -385,7 +385,7 @@ Emotion-classification/
 ├── .gitattributes                     # Git LFS configuration
 ├── requirements.txt                   # Python dependencies (40+ packages)
 ├── README.md                          # Quick project description
-└── Emotion-classification.code-workspace  # VS Code workspace
+└── Speech-AI-Suite.code-workspace  # VS Code workspace
 ```
 
 ---
@@ -531,8 +531,8 @@ When presenting this project in interviews, emphasize:
 ### Installation
 ```bash
 # Clone repository
-git clone https://github.com/sk-inthiyaz/Emotion-classification.git
-cd Emotion-classification
+git clone https://github.com/sk-inthiyaz/Speech-AI-Suite.git
+cd Speech-AI-Suite
 
 # Create virtual environment
 python -m venv venv
@@ -605,7 +605,7 @@ python app.py
 
 **Created:** December 2024
 **Last Updated:** December 11, 2025
-**Repository:** https://github.com/sk-inthiyaz/Emotion-classification
+**Repository:** https://github.com/sk-inthiyaz/Speech-AI-Suite
 
 ---
 

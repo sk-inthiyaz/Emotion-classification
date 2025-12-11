@@ -1255,7 +1255,7 @@ If using this project in research or publications, please cite:
   author={Inthiyaz, Sk and Singh, Romith and Kumar, Rohin and Ganji, Sahasra},
   year={2024-2025},
   organization={G-736 Team},
-  url={https://github.com/sk-inthiyaz/Emotion-classification}
+   url={https://github.com/sk-inthiyaz/Speech-AI-Suite}
 }
 
 @article{hubert2021,
