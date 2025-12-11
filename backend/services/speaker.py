@@ -95,10 +95,13 @@ class SpeakerInferenceService:
         """
         self._load_artifacts()
         
-        # Extract embeddings using XLSR-53 with custom pooling strategy
-        # Uses layers 6-13 with mean pooling across layers + mean/std pooling
-        embedding = self._extractor.extract_from_file(str(audio_path), pooling="xlsr_custom")
+        # Extract embeddings using XLSR-53 with mean pooling
+        # Note: Original used custom pooling (layers 6-13), but using mean pooling for compatibility
+        embedding = self._extractor.extract_from_file(str(audio_path), pooling="mean")
         embedding = embedding.reshape(1, -1)
+        
+        # Handle NaN values (replace with 0)
+        embedding = np.nan_to_num(embedding, nan=0.0, posinf=0.0, neginf=0.0)
         
         # Apply PCA for dimensionality reduction
         embedding_pca = self._pca.transform(embedding)

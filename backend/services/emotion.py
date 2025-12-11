@@ -92,6 +92,9 @@ class EmotionInferenceService:
         embedding = self.extractor.extract_from_file(str(audio_path))
         embedding = embedding.reshape(1, -1)
         
+        # Handle NaN values (replace with 0)
+        embedding = np.nan_to_num(embedding, nan=0.0, posinf=0.0, neginf=0.0)
+        
         # Scale the embedding
         embedding_scaled = self._scaler.transform(embedding)
         
