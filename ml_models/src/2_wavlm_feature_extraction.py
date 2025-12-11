@@ -24,7 +24,7 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Optional
 from tqdm import tqdm
-from transformers import WavLMModel, Wav2Vec2FeatureExtractor, HubertModel
+from transformers import Wav2Vec2Processor, WavLMModel, Wav2Vec2FeatureExtractor, HubertModel
 
 # Configure logging
 logging.basicConfig(
@@ -68,20 +68,11 @@ class WavLMFeatureExtractor:
         logger.info(f"Loading WavLM model: {model_name}")
         logger.info(f"Using device: {self.device} (CPU-only mode)")
         
-        # Detect model type and load appropriate processor/model
-        if "hubert" in model_name.lower():
-            # HuBERT models use Wav2Vec2FeatureExtractor
-            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-            self.model = HubertModel.from_pretrained(model_name)
-        elif "xlsr" in model_name.lower() or "wav2vec2" in model_name.lower():
-            # XLSR/Wav2Vec2 models
-            from transformers import Wav2Vec2Model
-            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-            self.model = Wav2Vec2Model.from_pretrained(model_name)
-        else:
-            # WavLM models use Wav2Vec2FeatureExtractor
-            self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-            self.model = WavLMModel.from_pretrained(model_name)
+        from transformers import Wav2Vec2FeatureExtractor, WavLMModel
+
+        self.processor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
+        self.model = WavLMModel.from_pretrained(model_name)
+                
         
         self.model.to(self.device)
         self.model.eval()
@@ -108,52 +99,42 @@ class WavLMFeatureExtractor:
             
             # For WebM or unsupported formats, convert using pydub first
             if file_ext in ['webm', 'ogg', 'opus']:
-                    try:
-                        import tempfile
-                        import subprocess
-                        import imageio_ffmpeg
-                        
-                        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-                        
-                        # Create temp wav file
-                        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
-                            tmp_path = tmp_wav.name
-                            
-                        # Convert using ffmpeg directly: ffmpeg -i input -ar 16000 -ac 1 -y output.wav
-                        cmd = [
-                            ffmpeg_exe,
-                            '-y',
-                            '-i', str(filepath),
-                            '-ar', str(target_sr),
-                            '-ac', '1',
-                            tmp_path
-                        ]
-                        
-                        # Run conversion (suppress output)
-                        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        
-                        # Load the WAV file
-                        import soundfile as sf
-                        waveform_np, sample_rate = sf.read(tmp_path, dtype='float32')
-                        
-                        # Clean up temp file
-                        import os
-                        if os.path.exists(tmp_path):
-                            os.unlink(tmp_path)
-                        
-                        # Convert to tensor
-                        waveform = torch.from_numpy(waveform_np)
-                        if waveform.ndim == 1:
-                            waveform = waveform.unsqueeze(0)
-                            
-                    except Exception as e:
-                         # Fallback or error reporting
-                         msg = (
-                             f"Error converting {file_ext} using ffmpeg: {e}. "
-                             "Ensure imageio-ffmpeg is installed."
-                         )
-                         logger.error(msg)
-                         raise RuntimeError(msg)
+                try:
+                    from pydub import AudioSegment
+                    import tempfile
+                    
+                    # Load with pydub and export to temporary WAV
+                    audio_segment = AudioSegment.from_file(filepath)
+                    # Convert to mono and set sample rate
+                    audio_segment = audio_segment.set_channels(1).set_frame_rate(target_sr)
+                    
+                    # Export to temporary WAV file
+                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+                        audio_segment.export(tmp_wav.name, format='wav')
+                        tmp_path = tmp_wav.name
+                    
+                    # Load the WAV file
+                    import soundfile as sf
+                    waveform_np, sample_rate = sf.read(tmp_path, dtype='float32')
+                    
+                    # Clean up temp file
+                    import os
+                    os.unlink(tmp_path)
+                    
+                    # Convert to tensor
+                    waveform = torch.from_numpy(waveform_np)
+                    if waveform.ndim == 1:
+                        waveform = waveform.unsqueeze(0)
+                    
+                except Exception as e:
+                    # Provide clearer guidance when FFmpeg is missing
+                    msg = (
+                        f"Error converting {file_ext} with pydub: {e}. "
+                        "If this is a recording from the browser, install FFmpeg and ensure it is in PATH. "
+                        "Download: https://www.gyan.dev/ffmpeg/builds/ (Windows), then add the 'bin' folder to your PATH."
+                    )
+                    logger.error(msg)
+                    raise RuntimeError(msg)
             else:
                 # Try torchaudio first (works for WAV, FLAC)
                 try:
@@ -209,7 +190,7 @@ class WavLMFeatureExtractor:
                 audio.numpy(),
                 sampling_rate=16000,
                 return_tensors="pt",
-                padding=True
+                #padding=True
             )
             
             # Move to device
@@ -231,31 +212,6 @@ class WavLMFeatureExtractor:
                 embedding = hidden_states[:, 0, :]
             elif pooling == "last":
                 embedding = hidden_states[:, -1, :]
-            elif pooling == "mean_max":
-                mean_emb = hidden_states.mean(dim=1)
-                max_emb = hidden_states.max(dim=1)[0]
-                embedding = torch.cat([mean_emb, max_emb], dim=1)
-            elif pooling == "xlsr_custom":
-                # Custom logic from user's training script:
-                # 1. Get hidden states from layers 6 to 13 (indices 6 to 12 inclusive)
-                # Note: outputs.hidden_states includes embedding layer at index 0, so layer 1 is index 1.
-                # The user code: layers = out.hidden_states[6:13]
-                # This implies 7 layers.
-                
-                # We need all hidden states first
-                all_hidden = outputs.hidden_states
-                
-                # Stack layers 6 to 13 (exclusive of 13) -> indices 6,7,8,9,10,11,12
-                selected_layers = torch.stack(all_hidden[6:13])
-                
-                # Mean across layers
-                layer_mean = selected_layers.mean(dim=0) # Shape: (batch, time, hidden)
-                
-                # Pooling: Mean and Std across time
-                mean_emb = layer_mean.mean(dim=1)
-                std_emb = layer_mean.std(dim=1)
-                
-                embedding = torch.cat([mean_emb, std_emb], dim=1)
             else:
                 raise ValueError(f"Unknown pooling strategy: {pooling}")
             
