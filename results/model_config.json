@@ -1,0 +1,9 @@
+{
+    "model_name": "XLSR_SpeakerID_40spk",
+    "timestamp": "2025-12-09_06-19-42",
+    "accuracy": 1.0,
+    "num_speakers": 40,
+    "clips_per_speaker": 20,
+    "embedding": "XLSR-53 mean+std pooled",
+    "classifier": "LogisticRegression(max_iter=5000)"
+}

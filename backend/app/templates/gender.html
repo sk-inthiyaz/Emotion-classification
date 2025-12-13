@@ -3,7 +3,8 @@
 <div class="row">
   <div class="col-lg-8">
     <h2 class="mb-3">Gender Identification</h2>
-    <p class="text-muted">Upload or record audio to identify speaker gender using WavLM-base-plus + Logistic Regression</p>
+    <p class="text-muted">Upload or record audio to identify speaker gender using WavLM-base-plus + Logistic Regression
+    </p>
 
     <!-- Recording Section -->
     <div class="card p-4 mb-3" id="recordingCard">
@@ -123,6 +124,13 @@
         <li>✓ Low background noise improves accuracy</li>
         <li>✓ Natural speaking tone works well</li>
       </ul>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <h6 class="mb-3">Why WavLM?</h6>
+      <img src="{{ url_for('static', filename='img/gender_model_comparison.jpg') }}" class="img-fluid rounded mb-2"
+        alt="Gender model comparison graph">
+      <small class="text-muted">WavLM-base + Logistic Regression consistently outperforms other architectures.</small>
     </div>
   </div>
 </div>

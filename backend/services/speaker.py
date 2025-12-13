@@ -4,7 +4,7 @@ Identifies speakers from audio using XLSR embeddings + Classifier.
 
 Model Details:
 - Feature Extractor: XLSR-53 (Wav2Vec2 Large)
-- Classifier: Support Vector Machine / Classifier
+- Classifier: Logistic Regression
 - Dimensionality Reduction: PCA + Scaler
 
 This service identifies unique speakers from audio input.

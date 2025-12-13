@@ -106,7 +106,7 @@
             <h6>Model Details</h6>
             <ul class="small mb-0">
                 <li><strong>Embeddings:</strong> WavLM Base</li>
-                <li><strong>Classifier:</strong> Logistic Regression</li>
+                <li><strong>Classifier:</strong> SVM</li>
                 <li><strong>Dataset:</strong> SLURP (Synthetic/Real)</li>
                 <li><strong>Dimensions:</strong> 50 (PCA)</li>
             </ul>
@@ -121,6 +121,14 @@
                 <li>lights_on/off</li>
                 <li>...and more</li>
             </ul>
+        </div>
+
+        <div class="card p-3 mt-3">
+            <h6 class="mb-3">Why WavLM?</h6>
+            <img src="{{ url_for('static', filename='img/intent_model_comparison.jpg') }}"
+                class="img-fluid rounded mb-2" alt="Intent model comparison graph">
+            <small class="text-muted">WavLM consistently outperforms other models (like HuBERT and Wav2Vec2) on the
+                SLURP dataset.</small>
         </div>
     </div>
 </div>

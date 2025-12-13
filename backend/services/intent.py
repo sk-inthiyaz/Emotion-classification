@@ -5,7 +5,7 @@ Classifies user intent from audio using WavLM embeddings + Classifier.
 Model Details:
 - Dataset: SLURP (Spoken Language Understanding Researchers' Platform)
 - Feature Extractor: WavLM-base-plus
-- Classifier: Logistic Regression
+- Classifier: SVM
 - Dimensionality Reduction: PCA
 
 Developer: Sahasra
@@ -40,7 +40,7 @@ class IntentInferenceService:
     Intent classification inference service.
     
     Classifies user intent from audio using WavLM-base-plus embeddings
-    with Logistic Regression classifier and PCA dimensionality reduction.
+    with SVM classifier and PCA dimensionality reduction.
     
     This service is designed by Sahasra for understanding user commands
     and requests from spoken input.

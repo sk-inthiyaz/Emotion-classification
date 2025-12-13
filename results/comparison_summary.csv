@@ -1,0 +1,2 @@
+timestamp,model,accuracy,num_speakers,notes
+2025-12-09_06-19-42,XLSR_SpeakerID_40spk,1.0,40,XLSR 40 speakers experiment

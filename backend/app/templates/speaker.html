@@ -107,7 +107,7 @@
       <h6>Model Details</h6>
       <ul class="small mb-0">
         <li><strong>Embeddings:</strong> XLSR-53</li>
-        <li><strong>Classifier:</strong> SVM</li>
+        <li><strong>Classifier:</strong> Logistic Regression</li>
         <li><strong>Accuracy:</strong> 98.33%</li>
         <li><strong>Dimensions:</strong> 1024 (PCA reduced)</li>
       </ul>
@@ -120,6 +120,13 @@
         <li>3-30 seconds optimal</li>
         <li>First run downloads model</li>
       </ul>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <h6 class="mb-3">Why XLSR-53?</h6>
+      <img src="{{ url_for('static', filename='img/model_comparison.png') }}" class="img-fluid rounded mb-2"
+        alt="Model comparison graph">
+      <small class="text-muted">Performance comparison showing XLSR-53's superiority in precision and accuracy.</small>
     </div>
   </div>
 </div>
